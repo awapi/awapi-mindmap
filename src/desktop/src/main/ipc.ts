@@ -28,6 +28,9 @@ export const IpcChannel = {
   AutosaveRead: 'autosave:read',
   AutosaveClear: 'autosave:clear',
 
+  // Updater
+  UpdaterCheck: 'updater:check',
+
   // Menu actions (main → renderer)
   MenuNewMap: 'menu:newMap',
   MenuOpen: 'menu:open',

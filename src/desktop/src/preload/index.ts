@@ -24,6 +24,8 @@ const api: AwapiApi = {
   autosaveRead: () => ipcRenderer.invoke('autosave:read'),
   autosaveClear: () => ipcRenderer.invoke('autosave:clear'),
 
+  updaterCheck: () => ipcRenderer.invoke('updater:check'),
+
   onMenuNewMap: (handler) => {
     ipcRenderer.on('menu:newMap', handler);
     return () => ipcRenderer.off('menu:newMap', handler);

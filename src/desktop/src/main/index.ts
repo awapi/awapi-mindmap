@@ -282,6 +282,38 @@ async function buildMenu(): Promise<void> {
           },
         },
         {
+          label: 'Check for Updates…',
+          click: async () => {
+            const win = BrowserWindow.getAllWindows()[0] ?? null;
+            try {
+              const result = await autoUpdater.checkForUpdates();
+              if (result && result.updateInfo.version !== app.getVersion()) {
+                const opts: Electron.MessageBoxOptions = {
+                  type: 'info',
+                  title: 'Update Available',
+                  message: `Version ${result.updateInfo.version} is available.`,
+                  detail: 'The update will be downloaded and installed automatically.',
+                };
+                win ? dialog.showMessageBox(win, opts) : dialog.showMessageBox(opts);
+              } else {
+                const opts: Electron.MessageBoxOptions = {
+                  type: 'info',
+                  title: 'No Updates',
+                  message: 'You are already on the latest version.',
+                };
+                win ? dialog.showMessageBox(win, opts) : dialog.showMessageBox(opts);
+              }
+            } catch {
+              const opts: Electron.MessageBoxOptions = {
+                type: 'error',
+                title: 'Update Check Failed',
+                message: 'Unable to check for updates. Please try again later.',
+              };
+              win ? dialog.showMessageBox(win, opts) : dialog.showMessageBox(opts);
+            }
+          },
+        },
+        {
           label: 'GitHub',
           click: () => shell.openExternal('https://github.com/awapi/awapi-mindmap'),
         },
@@ -364,6 +396,19 @@ function registerIpcHandlers(): void {
     await saveRecents([]);
     app.clearRecentDocuments();
     await buildMenu();
+  });
+
+  // Updater
+  ipcMain.handle(IpcChannel.UpdaterCheck, async (): Promise<{ available: boolean; version?: string }> => {
+    try {
+      const result = await autoUpdater.checkForUpdates();
+      if (result && result.updateInfo.version !== app.getVersion()) {
+        return { available: true, version: result.updateInfo.version };
+      }
+      return { available: false };
+    } catch {
+      return { available: false };
+    }
   });
 
   // Autosave

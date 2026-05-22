@@ -37,6 +37,9 @@ export interface AwapiApi {
   autosaveRead: () => Promise<AutosavePayload | null>;
   autosaveClear: () => Promise<void>;
 
+  // Updater
+  updaterCheck: () => Promise<{ available: boolean; version?: string }>;
+
   // Menu events — return an unsubscribe function
   onMenuNewMap: (handler: (event: IpcRendererEvent) => void) => () => void;
   onMenuOpen: (handler: (event: IpcRendererEvent) => void) => () => void;
