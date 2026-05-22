@@ -76,16 +76,12 @@ export function NodeFormattingToolbar({
 
   const applyShape = (shape: NodeShape) => {
     setNodeShape(nodeIds, shape);
-    setNodes((nds) =>
-      nds.map((n) => (idSet.has(n.id) ? { ...n, data: { ...n.data, shape } } : n)),
-    );
+    setNodes((nds) => nds.map((n) => (idSet.has(n.id) ? { ...n, data: { ...n.data, shape } } : n)));
   };
 
   const applyColor = (color: string | undefined) => {
     setNodeColor(nodeIds, color);
-    setNodes((nds) =>
-      nds.map((n) => (idSet.has(n.id) ? { ...n, data: { ...n.data, color } } : n)),
-    );
+    setNodes((nds) => nds.map((n) => (idSet.has(n.id) ? { ...n, data: { ...n.data, color } } : n)));
   };
 
   const applyFontSize = (size: number) => {

@@ -160,9 +160,9 @@ describe('addEdge', () => {
     useMindMapStore.getState().addNode(makeNode('dup'));
     useMindMapStore.getState().addEdge(makeEdge('e-dup-1', rootId, 'dup'));
     useMindMapStore.getState().addEdge(makeEdge('e-dup-2', rootId, 'dup'));
-    const edges = useMindMapStore.getState().mindMap!.edges.filter(
-      (e) => e.source === rootId && e.target === 'dup',
-    );
+    const edges = useMindMapStore
+      .getState()
+      .mindMap!.edges.filter((e) => e.source === rootId && e.target === 'dup');
     expect(edges).toHaveLength(1);
   });
 });
@@ -244,9 +244,9 @@ describe('setNodeColor', () => {
   it('sets and clears node color', () => {
     const id = useMindMapStore.getState().mindMap!.nodes[0].id;
     useMindMapStore.getState().setNodeColor([id], '#ff0000');
-    expect(
-      useMindMapStore.getState().mindMap!.nodes.find((n) => n.id === id)!.color,
-    ).toBe('#ff0000');
+    expect(useMindMapStore.getState().mindMap!.nodes.find((n) => n.id === id)!.color).toBe(
+      '#ff0000',
+    );
     useMindMapStore.getState().setNodeColor([id], undefined);
     expect(
       useMindMapStore.getState().mindMap!.nodes.find((n) => n.id === id)!.color,

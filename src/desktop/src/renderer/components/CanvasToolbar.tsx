@@ -83,11 +83,7 @@ export function CanvasToolbar({ activeTool, onToolChange, onAddNode }: Props): J
           <span>{label}</span>
         </button>
       ))}
-      <button
-        className="float-toolbar__btn"
-        title="Add Node"
-        onClick={onAddNode}
-      >
+      <button className="float-toolbar__btn" title="Add Node" onClick={onAddNode}>
         <IconAdd />
         <span>Add</span>
       </button>

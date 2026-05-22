@@ -943,7 +943,9 @@ body,
 
 .comment-node.selected .comment-node__bubble {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent), 0 2px 10px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 0 0 2px var(--accent),
+    0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
 .comment-node__tail {

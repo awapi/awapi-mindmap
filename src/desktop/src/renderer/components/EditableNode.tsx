@@ -90,7 +90,6 @@ export function EditableNode({ id, data, selected }: NodeProps): JSX.Element {
     return () => {
       if (editing) setEditingNodeId(null);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Minimum dimensions per shape

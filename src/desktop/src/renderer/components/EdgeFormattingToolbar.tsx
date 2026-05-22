@@ -57,7 +57,7 @@ function markerToRf(marker: EdgeMarker | undefined): EdgeMarkerType | undefined 
 export function EdgeFormattingToolbar({
   edgeIds,
   currentStyle,
-  currentColor,
+  currentColor: _currentColor,
   currentWidth,
   currentMarkerStart,
   currentMarkerEnd,
@@ -252,7 +252,9 @@ export function EdgeFormattingToolbar({
         <div className="node-toolbar__divider" />
 
         <div className="node-toolbar__group" role="group" aria-label="Source arrow">
-          <span className="node-toolbar__label" title="Source end">S:</span>
+          <span className="node-toolbar__label" title="Source end">
+            S:
+          </span>
           {MARKER_OPTIONS.map((opt) => (
             <button
               key={opt.value}
@@ -269,7 +271,9 @@ export function EdgeFormattingToolbar({
         <div className="node-toolbar__divider" />
 
         <div className="node-toolbar__group" role="group" aria-label="Target arrow">
-          <span className="node-toolbar__label" title="Target end">T:</span>
+          <span className="node-toolbar__label" title="Target end">
+            T:
+          </span>
           {MARKER_OPTIONS.map((opt) => (
             <button
               key={opt.value}

@@ -1,5 +1,12 @@
 /** Visual shape of a node on the canvas. */
-export type NodeShape = 'rectangle' | 'circle' | 'ellipse' | 'diamond' | 'text' | 'sticky' | 'comment';
+export type NodeShape =
+  | 'rectangle'
+  | 'circle'
+  | 'ellipse'
+  | 'diamond'
+  | 'text'
+  | 'sticky'
+  | 'comment';
 
 /** Core data model for a mind map. */
 

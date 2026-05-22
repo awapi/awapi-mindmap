@@ -138,8 +138,8 @@ function facingTargetHandle(srcNode: Node, tgtNode: Node): string {
   const sh = (srcNode.measured?.height ?? srcNode.height ?? 40) as number;
   const tw = (tgtNode.measured?.width ?? tgtNode.width ?? 80) as number;
   const th = (tgtNode.measured?.height ?? tgtNode.height ?? 40) as number;
-  const dx = (srcNode.position.x + sw / 2) - (tgtNode.position.x + tw / 2);
-  const dy = (srcNode.position.y + sh / 2) - (tgtNode.position.y + th / 2);
+  const dx = srcNode.position.x + sw / 2 - (tgtNode.position.x + tw / 2);
+  const dy = srcNode.position.y + sh / 2 - (tgtNode.position.y + th / 2);
   if (Math.abs(dx) >= Math.abs(dy)) {
     return dx > 0 ? 'right-t' : 'left-t';
   }
@@ -238,7 +238,9 @@ function CanvasFlow(): JSX.Element {
       const srcNode = allNodes.find((n) => n.id === connection.source);
       const tgtNode = allNodes.find((n) => n.id === connection.target);
       const targetHandle =
-        srcNode && tgtNode ? facingTargetHandle(srcNode, tgtNode) : (connection.targetHandle ?? undefined);
+        srcNode && tgtNode
+          ? facingTargetHandle(srcNode, tgtNode)
+          : (connection.targetHandle ?? undefined);
       const edge: MindMapEdge = {
         id: nanoid(),
         source: connection.source,
@@ -429,7 +431,9 @@ function CanvasFlow(): JSX.Element {
           const ids = [...selectedIds];
           deleteNodesAction(ids);
           setNodes((nds) => nds.filter((n) => !selectedIds.has(n.id)));
-          setEdges((eds) => eds.filter((ed) => !selectedIds.has(ed.source) && !selectedIds.has(ed.target)));
+          setEdges((eds) =>
+            eds.filter((ed) => !selectedIds.has(ed.source) && !selectedIds.has(ed.target)),
+          );
         }
         return;
       }
@@ -469,9 +473,18 @@ function CanvasFlow(): JSX.Element {
 
       // Tool shortcuts (skip when any meta is held)
       if (!isMeta) {
-        if (e.key === 'v' || e.key === 'V') { setActiveTool('select'); return; }
-        if (e.key === 's' || e.key === 'S') { setActiveTool('sticky'); return; }
-        if (e.key === 'c' || e.key === 'C') { setActiveTool('comment'); return; }
+        if (e.key === 'v' || e.key === 'V') {
+          setActiveTool('select');
+          return;
+        }
+        if (e.key === 's' || e.key === 'S') {
+          setActiveTool('sticky');
+          return;
+        }
+        if (e.key === 'c' || e.key === 'C') {
+          setActiveTool('comment');
+          return;
+        }
       }
 
       if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -492,7 +505,17 @@ function CanvasFlow(): JSX.Element {
         }
       }
     },
-    [nodes, edges, deleteNodesAction, deleteEdgesAction, addNodesAction, setNodes, setEdges, undo, redo],
+    [
+      nodes,
+      edges,
+      deleteNodesAction,
+      deleteEdgesAction,
+      addNodesAction,
+      setNodes,
+      setEdges,
+      undo,
+      redo,
+    ],
   );
 
   // --- Context menu ---
@@ -638,9 +661,7 @@ function CanvasFlow(): JSX.Element {
           const updates = selectedNodes.map((n) => ({ id: n.id, width: w, height: h }));
           setNodeSizes(updates);
           const idSet = new Set(selectedIds);
-          setNodes((nds) =>
-            nds.map((n) => (idSet.has(n.id) ? { ...n, width: w, height: h } : n)),
-          );
+          setNodes((nds) => nds.map((n) => (idSet.has(n.id) ? { ...n, width: w, height: h } : n)));
         };
 
         const deleteSelected = () => {
@@ -656,7 +677,11 @@ function CanvasFlow(): JSX.Element {
           { label: 'Align Top', onClick: () => alignTo('top') },
           { label: 'Align Bottom', onClick: () => alignTo('bottom') },
           { label: 'Same Size', dividerBefore: true, onClick: sameSize },
-          { label: `Delete ${selectedIds.length} Nodes`, dividerBefore: true, onClick: deleteSelected },
+          {
+            label: `Delete ${selectedIds.length} Nodes`,
+            dividerBefore: true,
+            onClick: deleteSelected,
+          },
         ];
       }
 
@@ -760,19 +785,20 @@ function CanvasFlow(): JSX.Element {
         allTextShape: false,
       };
     }
-    const shapes = new Set(selected.map((n) => (n.data.shape as NodeShape | undefined) ?? 'rectangle'));
+    const shapes = new Set(
+      selected.map((n) => (n.data.shape as NodeShape | undefined) ?? 'rectangle'),
+    );
     const fontSizes = new Set(selected.map((n) => n.data.fontSize as number | undefined));
     const aligns = new Set(
-      selected.map((n) => (n.data.textAlign as 'left' | 'center' | 'right' | undefined) ?? 'center'),
+      selected.map(
+        (n) => (n.data.textAlign as 'left' | 'center' | 'right' | undefined) ?? 'center',
+      ),
     );
     return {
       nodeIds: selected.map((n) => n.id),
       shape: shapes.size === 1 ? ([...shapes][0] as NodeShape) : undefined,
       fontSize: fontSizes.size === 1 ? ([...fontSizes][0] as number | undefined) : undefined,
-      textAlign:
-        aligns.size === 1
-          ? ([...aligns][0] as 'left' | 'center' | 'right')
-          : undefined,
+      textAlign: aligns.size === 1 ? ([...aligns][0] as 'left' | 'center' | 'right') : undefined,
       allTextShape: shapes.size === 1 && shapes.has('text'),
     };
   }, [nodes]);
@@ -845,8 +871,12 @@ function CanvasFlow(): JSX.Element {
         <div
           className={`canvas-flow tool-${activeTool}`}
           style={{ ['--zoom-inv' as string]: zoomInv } as React.CSSProperties}
-          onMouseDown={(e) => { if (e.button === 2) e.currentTarget.classList.add('is-panning'); }}
-          onMouseUp={(e) => { if (e.button === 2) e.currentTarget.classList.remove('is-panning'); }}
+          onMouseDown={(e) => {
+            if (e.button === 2) e.currentTarget.classList.add('is-panning');
+          }}
+          onMouseUp={(e) => {
+            if (e.button === 2) e.currentTarget.classList.remove('is-panning');
+          }}
           onMouseLeave={(e) => e.currentTarget.classList.remove('is-panning')}
         >
           <ReactFlow

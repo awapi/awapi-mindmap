@@ -1,6 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { MindMap, MindMapNode, MindMapEdge, NodeShape, EdgeStyle, EdgeMarker } from '../types/mindmap.js';
+import type {
+  MindMap,
+  MindMapNode,
+  MindMapEdge,
+  NodeShape,
+  EdgeStyle,
+  EdgeMarker,
+} from '../types/mindmap.js';
 import { nanoid } from '../utils/nanoid.js';
 
 const MAX_HISTORY = 50;
