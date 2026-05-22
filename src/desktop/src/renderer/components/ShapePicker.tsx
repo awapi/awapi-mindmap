@@ -10,11 +10,11 @@ interface ShapePickerProps {
 }
 
 const SHAPES: Array<{ shape: NodeShape; label: string }> = [
-  { shape: 'rectangle', label: 'Rect'    },
-  { shape: 'circle',    label: 'Circle'  },
-  { shape: 'ellipse',   label: 'Ellipse' },
-  { shape: 'diamond',   label: 'Diamond' },
-  { shape: 'text',      label: 'Text'    },
+  { shape: 'rectangle', label: 'Rect' },
+  { shape: 'circle', label: 'Circle' },
+  { shape: 'ellipse', label: 'Ellipse' },
+  { shape: 'diamond', label: 'Diamond' },
+  { shape: 'text', label: 'Text' },
 ];
 
 export function ShapePicker({ x, y, onSelect, onClose }: ShapePickerProps): JSX.Element {
@@ -45,7 +45,10 @@ export function ShapePicker({ x, y, onSelect, onClose }: ShapePickerProps): JSX.
             key={shape}
             className="shape-picker__btn"
             title={label}
-            onClick={() => { onSelect(shape); onClose(); }}
+            onClick={() => {
+              onSelect(shape);
+              onClose();
+            }}
           >
             <span className={`shape-picker__icon shape-picker__icon--${shape}`} />
             <span className="shape-picker__name">{label}</span>

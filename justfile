@@ -2,6 +2,7 @@
 # Requires: pnpm >= 10, node >= 22, just >= 1.49.
 
 set shell := ["bash", "-cu"]
+set windows-shell := ["powershell", "-NoLogo", "-NoProfile", "-NonInteractive", "-Command"]
 set dotenv-load := true
 
 # Default: list recipes.

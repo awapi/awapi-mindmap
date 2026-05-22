@@ -17,7 +17,7 @@ files, dark/light theme, auto-updates from a private GitHub Releases feed.
 
 - [x] **Phase 0** — Persistent plan workflow (`todo/`)
 - [x] **Phase 1** — Repo scaffolding: workspace layout, tooling, Electron shell,
-  typed IPC surface, React renderer skeleton, CI/CD pipelines, docs
+      typed IPC surface, React renderer skeleton, CI/CD pipelines, docs
 
 ---
 

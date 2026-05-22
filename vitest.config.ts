@@ -4,9 +4,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    environmentMatchGlobs: [
-      ['src/desktop/src/renderer/**/*.test.{ts,tsx}', 'jsdom'],
-    ],
+    environmentMatchGlobs: [['src/desktop/src/renderer/**/*.test.{ts,tsx}', 'jsdom']],
     setupFiles: ['./src/desktop/src/renderer/test-setup.ts'],
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     exclude: ['**/node_modules/**', '**/dist/**', '**/out/**'],

@@ -212,12 +212,14 @@ async function buildMenu(): Promise<void> {
         {
           label: 'New Map',
           accelerator: 'CmdOrCtrl+N',
-          click: (_item, win) => (win as BrowserWindow | undefined)?.webContents.send(IpcChannel.MenuNewMap),
+          click: (_item, win) =>
+            (win as BrowserWindow | undefined)?.webContents.send(IpcChannel.MenuNewMap),
         },
         {
           label: 'Open…',
           accelerator: 'CmdOrCtrl+O',
-          click: (_item, win) => (win as BrowserWindow | undefined)?.webContents.send(IpcChannel.MenuOpen),
+          click: (_item, win) =>
+            (win as BrowserWindow | undefined)?.webContents.send(IpcChannel.MenuOpen),
         },
         { label: 'Open Recent', submenu: recentSubmenu },
         { type: 'separator' },
@@ -226,14 +228,16 @@ async function buildMenu(): Promise<void> {
           label: 'Save',
           accelerator: 'CmdOrCtrl+S',
           enabled: hasMap,
-          click: (_item, win) => (win as BrowserWindow | undefined)?.webContents.send(IpcChannel.MenuSave),
+          click: (_item, win) =>
+            (win as BrowserWindow | undefined)?.webContents.send(IpcChannel.MenuSave),
         },
         {
           id: 'saveAs',
           label: 'Save As…',
           accelerator: 'CmdOrCtrl+Shift+S',
           enabled: hasMap,
-          click: (_item, win) => (win as BrowserWindow | undefined)?.webContents.send(IpcChannel.MenuSaveAs),
+          click: (_item, win) =>
+            (win as BrowserWindow | undefined)?.webContents.send(IpcChannel.MenuSaveAs),
         },
         { type: 'separator' },
         { role: 'quit' },
@@ -317,9 +321,7 @@ function registerIpcHandlers(): void {
 
   ipcMain.handle(IpcChannel.ShowMessageBox, async (event, options: Electron.MessageBoxOptions) => {
     const win = BrowserWindow.fromWebContents(event.sender);
-    return win
-      ? dialog.showMessageBox(win, options)
-      : dialog.showMessageBox(options);
+    return win ? dialog.showMessageBox(win, options) : dialog.showMessageBox(options);
   });
 
   ipcMain.handle(IpcChannel.ReadFile, async (_event, filePath: string) => {

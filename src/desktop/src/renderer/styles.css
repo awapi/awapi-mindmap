@@ -243,11 +243,25 @@ body,
 }
 
 /* Horizontal alignment — only applied to the text shape. */
-.editable-node.shape-text.align-left   { justify-content: flex-start; text-align: left;   }
-.editable-node.shape-text.align-center { justify-content: center;     text-align: center; }
-.editable-node.shape-text.align-right  { justify-content: flex-end;   text-align: right;  }
-.editable-node.shape-text .editable-node__label { white-space: pre-wrap; width: 100%; }
-.editable-node.shape-text .editable-node__input { text-align: inherit; }
+.editable-node.shape-text.align-left {
+  justify-content: flex-start;
+  text-align: left;
+}
+.editable-node.shape-text.align-center {
+  justify-content: center;
+  text-align: center;
+}
+.editable-node.shape-text.align-right {
+  justify-content: flex-end;
+  text-align: right;
+}
+.editable-node.shape-text .editable-node__label {
+  white-space: pre-wrap;
+  width: 100%;
+}
+.editable-node.shape-text .editable-node__input {
+  text-align: inherit;
+}
 .editable-node__input--multiline {
   resize: none;
   overflow: hidden;
@@ -290,7 +304,7 @@ body,
   border: none;
   box-shadow: none;
   filter: drop-shadow(0 0 calc(2px * var(--zoom-inv, 1)) var(--accent))
-          drop-shadow(0 0 calc(2px * var(--zoom-inv, 1)) var(--accent));
+    drop-shadow(0 0 calc(2px * var(--zoom-inv, 1)) var(--accent));
 }
 
 .editable-node.shape-diamond .editable-node__label {
@@ -316,10 +330,18 @@ body,
 /* Keep handles fully inside the node so edges connect flush to the border
    (React Flow's default transforms push half the handle outside the node,
    which makes edges stop short of the visible border). */
-.editable-node .react-flow__handle-top    { transform: translate(-50%, 0); }
-.editable-node .react-flow__handle-bottom { transform: translate(-50%, 0); }
-.editable-node .react-flow__handle-left   { transform: translate(0, -50%); }
-.editable-node .react-flow__handle-right  { transform: translate(0, -50%); }
+.editable-node .react-flow__handle-top {
+  transform: translate(-50%, 0);
+}
+.editable-node .react-flow__handle-bottom {
+  transform: translate(-50%, 0);
+}
+.editable-node .react-flow__handle-left {
+  transform: translate(0, -50%);
+}
+.editable-node .react-flow__handle-right {
+  transform: translate(0, -50%);
+}
 
 .react-flow__node-editableNode:hover .react-flow__handle,
 .react-flow__node-editableNode.selected .react-flow__handle {
@@ -405,7 +427,9 @@ body,
   border-radius: 50%;
   border: 2px solid transparent;
   cursor: pointer;
-  transition: transform 0.1s, border-color 0.1s;
+  transition:
+    transform 0.1s,
+    border-color 0.1s;
   flex-shrink: 0;
 }
 
@@ -470,7 +494,9 @@ body,
   border-radius: 7px;
   color: var(--text);
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
   min-width: 56px;
 }
 
@@ -553,7 +579,7 @@ body,
    ========================================================================= */
 
 .react-flow__edgeupdater {
-  r: calc(5px * var(--zoom-inv, 1));     /* SVG circle radius */
+  r: calc(5px * var(--zoom-inv, 1)); /* SVG circle radius */
   fill: var(--accent);
   stroke: var(--surface);
   stroke-width: calc(2px * var(--zoom-inv, 1));
@@ -567,7 +593,6 @@ body,
 .react-flow__edge.selected .react-flow__edgeupdater {
   opacity: 1;
 }
-
 
 /* =========================================================================
    Floating node formatting toolbar (appears above a selected node)
@@ -637,7 +662,9 @@ body,
   border: 2px solid transparent;
   padding: 0;
   cursor: pointer;
-  transition: transform 0.1s, border-color 0.1s;
+  transition:
+    transform 0.1s,
+    border-color 0.1s;
   flex-shrink: 0;
 }
 
@@ -656,8 +683,12 @@ body,
   font-size: 12px;
 }
 
-.node-toolbar__font--small { font-size: 11px; }
-.node-toolbar__font--large { font-size: 16px; }
+.node-toolbar__font--small {
+  font-size: 11px;
+}
+.node-toolbar__font--large {
+  font-size: 16px;
+}
 
 .node-toolbar__font-input {
   width: 42px;

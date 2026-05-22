@@ -1,6 +1,4 @@
 {
   "files": [],
-  "references": [
-    { "path": "./src/desktop" }
-  ]
+  "references": [{ "path": "./src/desktop" }]
 }

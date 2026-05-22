@@ -19,5 +19,6 @@ What you expected to happen.
 If applicable, add screenshots to help explain your problem.
 
 **Environment**
+
 - OS: [e.g. macOS 14, Windows 11, Ubuntu 22.04]
 - App version: [e.g. 0.1.0]

@@ -3,6 +3,7 @@
 This is a cross-platform Electron desktop app for designing mind maps.
 
 ## Stack
+
 - **Electron** with **electron-vite** for build tooling
 - **React 18** + **TypeScript** in the renderer
 - **Zustand** for state management
@@ -12,6 +13,7 @@ This is a cross-platform Electron desktop app for designing mind maps.
 - **electron-builder** for packaging
 
 ## Project layout
+
 ```
 src/desktop/src/
   main/       – Electron main process (Node.js)
@@ -24,11 +26,13 @@ src/desktop/src/
 ```
 
 ## IPC pattern
+
 - `ipcMain.handle` / `ipcRenderer.invoke` via named channels defined in `src/desktop/src/main/ipc.ts`
 - `contextBridge.exposeInMainWorld('awapi', {...})` in preload — typed via `window.awapi` declaration
 - Never use `remote` module
 
 ## Conventions
+
 - Primitive Zustand selectors (one per field) — never return object literals from selectors
 - File save/load via IPC to avoid renderer FS access
 - Mind map data serialised as JSON (`*.awmm` extension)

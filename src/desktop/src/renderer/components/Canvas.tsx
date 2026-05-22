@@ -27,7 +27,7 @@ import { EditableNode } from './EditableNode.js';
 import { ContextMenu } from './ContextMenu.js';
 import { ShapePicker } from './ShapePicker.js';
 import type { ContextMenuAction } from './ContextMenu.js';
-import type { MindMapNode, MindMapEdge, NodeShape, EdgeStyle } from '../types/mindmap.js';
+import type { MindMapNode, MindMapEdge, NodeShape } from '../types/mindmap.js';
 import { nanoid } from '../utils/nanoid.js';
 
 // Defined outside component to prevent nodeTypes object from being re-created on every render
@@ -37,15 +37,19 @@ function toFlowNode(n: MindMapNode): Node {
   const shape = n.shape ?? 'rectangle';
   // Restore explicit user-set dimensions; give circles/ellipses a sensible default so
   // NodeResizer has something to work with before the user resizes.
-  const width  = n.width  ?? (shape === 'circle' ? 80 : shape === 'ellipse' ? 100 : shape === 'diamond' ? 120 : undefined);
-  const height = n.height ?? (shape === 'circle' ? 80 : shape === 'ellipse' ? 60  : shape === 'diamond' ? 90  : undefined);
+  const width =
+    n.width ??
+    (shape === 'circle' ? 80 : shape === 'ellipse' ? 100 : shape === 'diamond' ? 120 : undefined);
+  const height =
+    n.height ??
+    (shape === 'circle' ? 80 : shape === 'ellipse' ? 60 : shape === 'diamond' ? 90 : undefined);
   return {
     id: n.id,
     type: 'editableNode',
     position: n.position,
     data: { label: n.label, shape, fontSize: n.fontSize, textAlign: n.textAlign },
     style: n.color ? { background: n.color } : undefined,
-    ...(width  != null ? { width }  : {}),
+    ...(width != null ? { width } : {}),
     ...(height != null ? { height } : {}),
   };
 }
@@ -115,8 +119,7 @@ function CanvasFlow(): JSX.Element {
   useEffect(() => {
     setNodes(mindMap?.nodes.map(toFlowNode) ?? []);
     setEdges(mindMap?.edges.map(toFlowEdge) ?? []);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [syncKey]);
+  }, [syncKey]); // intentionally omits setNodes/setEdges (stable refs)
 
   // --- Node / edge change handlers ---
 
@@ -206,8 +209,8 @@ function CanvasFlow(): JSX.Element {
       pendingSource.current = null;
       if (!src) return;
 
-      const clientX = 'clientX' in event ? event.clientX : event.changedTouches[0]?.clientX ?? 0;
-      const clientY = 'clientY' in event ? event.clientY : event.changedTouches[0]?.clientY ?? 0;
+      const clientX = 'clientX' in event ? event.clientX : (event.changedTouches[0]?.clientX ?? 0);
+      const clientY = 'clientY' in event ? event.clientY : (event.changedTouches[0]?.clientY ?? 0);
 
       const flowPos = screenToFlowPosition({ x: clientX, y: clientY });
       setShapePicker({
@@ -301,9 +304,7 @@ function CanvasFlow(): JSX.Element {
           deleteNodesAction(selectedNodeIds);
           setNodes((nds) => nds.filter((n) => !idSet.has(n.id)));
           // Also remove any edges connected to the deleted nodes
-          setEdges((eds) =>
-            eds.filter((ed) => !idSet.has(ed.source) && !idSet.has(ed.target)),
-          );
+          setEdges((eds) => eds.filter((ed) => !idSet.has(ed.source) && !idSet.has(ed.target)));
         }
         if (selectedEdgeIds.length > 0) {
           const edgeIdSet = new Set(selectedEdgeIds);
@@ -369,17 +370,13 @@ function CanvasFlow(): JSX.Element {
       return [
         {
           label: 'Add Child Node',
-          onClick: () =>
-            addNewNode({ x: nodePos.x + 200, y: nodePos.y + 100 }, nodeId),
+          onClick: () => addNewNode({ x: nodePos.x + 200, y: nodePos.y + 100 }, nodeId),
         },
         {
           label: 'Add Sibling Node',
           onClick: () => {
             const parentEdge = edges.find((e) => e.target === nodeId);
-            addNewNode(
-              { x: nodePos.x, y: nodePos.y + 120 },
-              parentEdge?.source,
-            );
+            addNewNode({ x: nodePos.x, y: nodePos.y + 120 }, parentEdge?.source);
           },
         },
         {
@@ -387,9 +384,7 @@ function CanvasFlow(): JSX.Element {
           onClick: () => {
             deleteNodesAction([nodeId]);
             setNodes((nds) => nds.filter((n) => n.id !== nodeId));
-            setEdges((eds) =>
-              eds.filter((e) => e.source !== nodeId && e.target !== nodeId),
-            );
+            setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
           },
         },
       ];
@@ -410,28 +405,28 @@ function CanvasFlow(): JSX.Element {
           dividerBefore: true,
           onClick: () => {
             setEdgeStyle(edgeId, 'default');
-            setEdges((eds) => eds.map((e) => e.id === edgeId ? { ...e, type: 'default' } : e));
+            setEdges((eds) => eds.map((e) => (e.id === edgeId ? { ...e, type: 'default' } : e)));
           },
         },
         {
           label: 'Style: Straight',
           onClick: () => {
             setEdgeStyle(edgeId, 'straight');
-            setEdges((eds) => eds.map((e) => e.id === edgeId ? { ...e, type: 'straight' } : e));
+            setEdges((eds) => eds.map((e) => (e.id === edgeId ? { ...e, type: 'straight' } : e)));
           },
         },
         {
           label: 'Style: Step',
           onClick: () => {
             setEdgeStyle(edgeId, 'step');
-            setEdges((eds) => eds.map((e) => e.id === edgeId ? { ...e, type: 'step' } : e));
+            setEdges((eds) => eds.map((e) => (e.id === edgeId ? { ...e, type: 'step' } : e)));
           },
         },
         {
           label: 'Style: Smooth Step',
           onClick: () => {
             setEdgeStyle(edgeId, 'smoothstep');
-            setEdges((eds) => eds.map((e) => e.id === edgeId ? { ...e, type: 'smoothstep' } : e));
+            setEdges((eds) => eds.map((e) => (e.id === edgeId ? { ...e, type: 'smoothstep' } : e)));
           },
         },
       ];
@@ -457,12 +452,7 @@ function CanvasFlow(): JSX.Element {
   ]);
 
   return (
-    <div
-      className="canvas-wrapper"
-      ref={wrapperRef}
-      onKeyDown={onKeyDown}
-      tabIndex={0}
-    >
+    <div className="canvas-wrapper" ref={wrapperRef} onKeyDown={onKeyDown} tabIndex={0}>
       <div className="canvas-toolbar">
         <button
           className="toolbar-btn"
@@ -494,11 +484,7 @@ function CanvasFlow(): JSX.Element {
           ↪ Redo
         </button>
         <div className="toolbar-spacer" />
-        <button
-          className="toolbar-btn"
-          title="Toggle light / dark theme"
-          onClick={toggleTheme}
-        >
+        <button className="toolbar-btn" title="Toggle light / dark theme" onClick={toggleTheme}>
           {theme === 'dark' ? '☀ Light' : '☾ Dark'}
         </button>
       </div>

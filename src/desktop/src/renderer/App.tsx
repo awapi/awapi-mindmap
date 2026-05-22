@@ -25,7 +25,7 @@ async function confirmDiscardOrSave(
     cancelId: 2,
     title: 'Unsaved changes',
     message: `Save changes to "${mindMap.title}"?`,
-    detail: 'Your changes will be lost if you don\'t save them.',
+    detail: "Your changes will be lost if you don't save them.",
   });
   if (result.response === 0) return doSave();
   if (result.response === 1) return true;

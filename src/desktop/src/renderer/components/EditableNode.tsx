@@ -37,9 +37,7 @@ export function EditableNode({ id, data, selected }: NodeProps): JSX.Element {
       // Patch the local React Flow node data so the label renders immediately
       // without waiting for a full store→canvas sync.
       setNodes((nds) =>
-        nds.map((n) =>
-          n.id === id ? { ...n, data: { ...n.data, label: trimmed } } : n,
-        ),
+        nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, label: trimmed } } : n)),
       );
     }
     setEditing(false);
@@ -74,14 +72,26 @@ export function EditableNode({ id, data, selected }: NodeProps): JSX.Element {
   );
 
   // Minimum dimensions per shape
-  const minWidth  = shape === 'circle'  ? 50
-                  : shape === 'ellipse' ? 60
-                  : shape === 'diamond' ? 100
-                  : shape === 'text'    ? 40 : 80;
-  const minHeight = shape === 'circle'  ? 50
-                  : shape === 'ellipse' ? 40
-                  : shape === 'diamond' ? 80
-                  : shape === 'text'    ? 24 : 36;
+  const minWidth =
+    shape === 'circle'
+      ? 50
+      : shape === 'ellipse'
+        ? 60
+        : shape === 'diamond'
+          ? 100
+          : shape === 'text'
+            ? 40
+            : 80;
+  const minHeight =
+    shape === 'circle'
+      ? 50
+      : shape === 'ellipse'
+        ? 40
+        : shape === 'diamond'
+          ? 80
+          : shape === 'text'
+            ? 24
+            : 36;
 
   return (
     <>
@@ -106,34 +116,34 @@ export function EditableNode({ id, data, selected }: NodeProps): JSX.Element {
         style={data.fontSize ? { fontSize: `${data.fontSize}px` } : undefined}
         onDoubleClick={handleDoubleClick}
       >
-      <Handle id="top"    type="source" position={Position.Top} />
-      <Handle id="right"  type="source" position={Position.Right} />
-      <Handle id="bottom" type="source" position={Position.Bottom} />
-      <Handle id="left"   type="source" position={Position.Left} />
-      {editing ? (
-        isText ? (
-          <textarea
-            ref={inputRef as React.RefObject<HTMLTextAreaElement>}
-            className="editable-node__input editable-node__input--multiline"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={commitEdit}
-            onKeyDown={handleKeyDown}
-            rows={Math.max(1, draft.split('\n').length)}
-          />
+        <Handle id="top" type="source" position={Position.Top} />
+        <Handle id="right" type="source" position={Position.Right} />
+        <Handle id="bottom" type="source" position={Position.Bottom} />
+        <Handle id="left" type="source" position={Position.Left} />
+        {editing ? (
+          isText ? (
+            <textarea
+              ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+              className="editable-node__input editable-node__input--multiline"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={commitEdit}
+              onKeyDown={handleKeyDown}
+              rows={Math.max(1, draft.split('\n').length)}
+            />
+          ) : (
+            <input
+              ref={inputRef as React.RefObject<HTMLInputElement>}
+              className="editable-node__input"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={commitEdit}
+              onKeyDown={handleKeyDown}
+            />
+          )
         ) : (
-          <input
-            ref={inputRef as React.RefObject<HTMLInputElement>}
-            className="editable-node__input"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={commitEdit}
-            onKeyDown={handleKeyDown}
-          />
-        )
-      ) : (
-        <span className="editable-node__label">{String(data.label ?? '')}</span>
-      )}
+          <span className="editable-node__label">{String(data.label ?? '')}</span>
+        )}
       </div>
     </>
   );

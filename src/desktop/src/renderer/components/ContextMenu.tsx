@@ -55,7 +55,10 @@ export function ContextMenu({ x, y, actions, onClose }: ContextMenuProps): JSX.E
                     className={`context-menu__swatch${s.color === 'reset' ? ' context-menu__swatch--reset' : ''}`}
                     style={s.color !== 'reset' ? { background: s.color } : undefined}
                     title={s.title}
-                    onClick={() => { s.onClick(); onClose(); }}
+                    onClick={() => {
+                      s.onClick();
+                      onClose();
+                    }}
                   >
                     {s.color === 'reset' ? 'Reset' : null}
                   </button>

@@ -40,7 +40,12 @@ export interface MindMapState {
   renameNode: (id: string, label: string) => void;
   addEdge: (edge: MindMapEdge) => void;
   reconnectEdge: (oldId: string, newEdge: MindMapEdge) => void;
-  resizeNode: (id: string, width: number, height: number, position: { x: number; y: number }) => void;
+  resizeNode: (
+    id: string,
+    width: number,
+    height: number,
+    position: { x: number; y: number },
+  ) => void;
   syncPositions: (updates: Array<{ id: string; position: { x: number; y: number } }>) => void;
   setNodeShape: (id: string, shape: NodeShape) => void;
   setNodeColor: (id: string, color: string | undefined) => void;
@@ -134,9 +139,7 @@ export const useMindMapStore = create<MindMapState>()((set) => ({
         mindMap: {
           ...s.mindMap,
           nodes: s.mindMap.nodes.filter((n) => !idSet.has(n.id)),
-          edges: s.mindMap.edges.filter(
-            (e) => !idSet.has(e.source) && !idSet.has(e.target),
-          ),
+          edges: s.mindMap.edges.filter((e) => !idSet.has(e.source) && !idSet.has(e.target)),
           updatedAt: new Date().toISOString(),
         },
         isDirty: true,
@@ -217,9 +220,7 @@ export const useMindMapStore = create<MindMapState>()((set) => ({
         future: [],
         mindMap: {
           ...s.mindMap,
-          nodes: s.mindMap.nodes.map((n) =>
-            n.id === id ? { ...n, width, height, position } : n,
-          ),
+          nodes: s.mindMap.nodes.map((n) => (n.id === id ? { ...n, width, height, position } : n)),
           updatedAt: new Date().toISOString(),
         },
         isDirty: true,
@@ -266,9 +267,7 @@ export const useMindMapStore = create<MindMapState>()((set) => ({
         future: [],
         mindMap: {
           ...s.mindMap,
-          nodes: s.mindMap.nodes.map((n) =>
-            n.id === id ? { ...n, color } : n,
-          ),
+          nodes: s.mindMap.nodes.map((n) => (n.id === id ? { ...n, color } : n)),
           updatedAt: new Date().toISOString(),
         },
         isDirty: true,
@@ -283,9 +282,7 @@ export const useMindMapStore = create<MindMapState>()((set) => ({
         future: [],
         mindMap: {
           ...s.mindMap,
-          nodes: s.mindMap.nodes.map((n) =>
-            n.id === id ? { ...n, fontSize } : n,
-          ),
+          nodes: s.mindMap.nodes.map((n) => (n.id === id ? { ...n, fontSize } : n)),
           updatedAt: new Date().toISOString(),
         },
         isDirty: true,
@@ -300,9 +297,7 @@ export const useMindMapStore = create<MindMapState>()((set) => ({
         future: [],
         mindMap: {
           ...s.mindMap,
-          nodes: s.mindMap.nodes.map((n) =>
-            n.id === id ? { ...n, textAlign } : n,
-          ),
+          nodes: s.mindMap.nodes.map((n) => (n.id === id ? { ...n, textAlign } : n)),
           updatedAt: new Date().toISOString(),
         },
         isDirty: true,
@@ -317,9 +312,7 @@ export const useMindMapStore = create<MindMapState>()((set) => ({
         future: [],
         mindMap: {
           ...s.mindMap,
-          edges: s.mindMap.edges.map((e) =>
-            e.id === id ? { ...e, edgeStyle: style } : e,
-          ),
+          edges: s.mindMap.edges.map((e) => (e.id === id ? { ...e, edgeStyle: style } : e)),
           updatedAt: new Date().toISOString(),
         },
         isDirty: true,
@@ -333,9 +326,7 @@ export const useMindMapStore = create<MindMapState>()((set) => ({
       const previous = past.pop()!;
       return {
         history: past,
-        future: s.mindMap
-          ? [s.mindMap, ...s.future].slice(0, MAX_HISTORY)
-          : s.future,
+        future: s.mindMap ? [s.mindMap, ...s.future].slice(0, MAX_HISTORY) : s.future,
         mindMap: previous,
         isDirty: true,
         syncKey: s.syncKey + 1,
@@ -347,16 +338,13 @@ export const useMindMapStore = create<MindMapState>()((set) => ({
       if (s.future.length === 0) return {};
       const [next, ...rest] = s.future;
       return {
-        history: s.mindMap
-          ? [...s.history, s.mindMap].slice(-MAX_HISTORY)
-          : s.history,
+        history: s.mindMap ? [...s.history, s.mindMap].slice(-MAX_HISTORY) : s.history,
         future: rest,
         mindMap: next,
         isDirty: true,
         syncKey: s.syncKey + 1,
       };
     }),
-
 }));
 
 /** Theme ----------------------------------------------------------------- */

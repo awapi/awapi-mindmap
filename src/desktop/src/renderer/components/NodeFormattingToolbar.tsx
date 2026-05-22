@@ -14,20 +14,20 @@ interface NodeFormattingToolbarProps {
 
 const SHAPE_OPTIONS: Array<{ shape: NodeShape; label: string; glyph: string }> = [
   { shape: 'rectangle', label: 'Rectangle', glyph: '▭' },
-  { shape: 'circle',    label: 'Circle',    glyph: '○' },
-  { shape: 'ellipse',   label: 'Ellipse',   glyph: '⬭' },
-  { shape: 'diamond',   label: 'Diamond',   glyph: '◇' },
-  { shape: 'text',      label: 'Text only', glyph: 'T' },
+  { shape: 'circle', label: 'Circle', glyph: '○' },
+  { shape: 'ellipse', label: 'Ellipse', glyph: '⬭' },
+  { shape: 'diamond', label: 'Diamond', glyph: '◇' },
+  { shape: 'text', label: 'Text only', glyph: 'T' },
 ];
 
 const COLOUR_OPTIONS: Array<{ color: string; title: string }> = [
-  { color: '#e94560', title: 'Red'    },
+  { color: '#e94560', title: 'Red' },
   { color: '#f5a623', title: 'Orange' },
   { color: '#f8e71c', title: 'Yellow' },
-  { color: '#7ed321', title: 'Green'  },
-  { color: '#4a90e2', title: 'Blue'   },
+  { color: '#7ed321', title: 'Green' },
+  { color: '#4a90e2', title: 'Blue' },
   { color: '#9b59b6', title: 'Purple' },
-  { color: '#1abc9c', title: 'Teal'   },
+  { color: '#1abc9c', title: 'Teal' },
 ];
 
 const FONT_MIN = 8;
@@ -35,17 +35,16 @@ const FONT_MAX = 96;
 const FONT_DEFAULT = 10;
 const FONT_STEP = 2;
 
-const clampFont = (n: number) =>
-  Math.max(FONT_MIN, Math.min(FONT_MAX, Math.round(n)));
+const clampFont = (n: number) => Math.max(FONT_MIN, Math.min(FONT_MAX, Math.round(n)));
 
 /** Excel-style alignment icon: four stacked horizontal bars positioned by alignment. */
 function AlignIcon({ align }: { align: 'left' | 'center' | 'right' }): JSX.Element {
   // Bar geometry: alternating long/short widths so the alignment is clearly visible.
   const bars = [
-    { y: 3,  w: 12 },
-    { y: 6,  w: 8  },
-    { y: 9,  w: 12 },
-    { y: 12, w: 8  },
+    { y: 3, w: 12 },
+    { y: 6, w: 8 },
+    { y: 9, w: 12 },
+    { y: 12, w: 8 },
   ];
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false">
@@ -64,17 +63,15 @@ export function NodeFormattingToolbar({
   currentFontSize,
   currentTextAlign,
 }: NodeFormattingToolbarProps): JSX.Element {
-  const setNodeShape     = useMindMapStore((s) => s.setNodeShape);
-  const setNodeColor     = useMindMapStore((s) => s.setNodeColor);
-  const setNodeFontSize  = useMindMapStore((s) => s.setNodeFontSize);
+  const setNodeShape = useMindMapStore((s) => s.setNodeShape);
+  const setNodeColor = useMindMapStore((s) => s.setNodeColor);
+  const setNodeFontSize = useMindMapStore((s) => s.setNodeFontSize);
   const setNodeTextAlign = useMindMapStore((s) => s.setNodeTextAlign);
   const { setNodes } = useReactFlow();
 
   const applyShape = (shape: NodeShape) => {
     setNodeShape(nodeId, shape);
-    setNodes((nds) =>
-      nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, shape } } : n)),
-    );
+    setNodes((nds) => nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, shape } } : n)));
   };
 
   const applyColor = (color: string | undefined) => {
@@ -90,9 +87,7 @@ export function NodeFormattingToolbar({
     const next = clampFont(size);
     setNodeFontSize(nodeId, next);
     setNodes((nds) =>
-      nds.map((n) =>
-        n.id === nodeId ? { ...n, data: { ...n.data, fontSize: next } } : n,
-      ),
+      nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, fontSize: next } } : n)),
     );
     return next;
   };
@@ -100,9 +95,7 @@ export function NodeFormattingToolbar({
   const applyTextAlign = (align: 'left' | 'center' | 'right') => {
     setNodeTextAlign(nodeId, align);
     setNodes((nds) =>
-      nds.map((n) =>
-        n.id === nodeId ? { ...n, data: { ...n.data, textAlign: align } } : n,
-      ),
+      nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, textAlign: align } } : n)),
     );
   };
 

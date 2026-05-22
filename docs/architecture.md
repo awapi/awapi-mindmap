@@ -36,17 +36,17 @@ AwapiMindmap is a single-window Electron app. The standard Electron three-proces
 
 All channel names are defined in `src/desktop/src/main/ipc.ts` as the `IpcChannel` const object.
 
-| Channel | Direction | Purpose |
-|---|---|---|
-| `dialog:showOpen` | renderer → main | Show native open-file dialog |
-| `dialog:showSave` | renderer → main | Show native save-file dialog |
-| `fs:readFile` | renderer → main | Read a file as UTF-8 string |
-| `fs:writeFile` | renderer → main | Write a UTF-8 string to a file |
-| `app:getVersion` | renderer → main | Get the app version |
-| `menu:newMap` | main → renderer | New Map menu triggered |
-| `menu:open` | main → renderer | Open menu triggered |
-| `menu:save` | main → renderer | Save menu triggered |
-| `menu:saveAs` | main → renderer | Save As menu triggered |
+| Channel           | Direction       | Purpose                        |
+| ----------------- | --------------- | ------------------------------ |
+| `dialog:showOpen` | renderer → main | Show native open-file dialog   |
+| `dialog:showSave` | renderer → main | Show native save-file dialog   |
+| `fs:readFile`     | renderer → main | Read a file as UTF-8 string    |
+| `fs:writeFile`    | renderer → main | Write a UTF-8 string to a file |
+| `app:getVersion`  | renderer → main | Get the app version            |
+| `menu:newMap`     | main → renderer | New Map menu triggered         |
+| `menu:open`       | main → renderer | Open menu triggered            |
+| `menu:save`       | main → renderer | Save menu triggered            |
+| `menu:saveAs`     | main → renderer | Save As menu triggered         |
 
 ## File format
 
@@ -58,8 +58,8 @@ Mind maps are saved as `.awmm` files (JSON):
   "mindMap": {
     "id": "…",
     "title": "My Map",
-    "nodes": [ { "id": "…", "label": "…", "position": { "x": 0, "y": 0 } } ],
-    "edges": [ { "id": "…", "source": "…", "target": "…" } ],
+    "nodes": [{ "id": "…", "label": "…", "position": { "x": 0, "y": 0 } }],
+    "edges": [{ "id": "…", "source": "…", "target": "…" }],
     "updatedAt": "2026-01-01T00:00:00.000Z"
   }
 }
@@ -67,11 +67,11 @@ Mind maps are saved as `.awmm` files (JSON):
 
 ## Build pipeline
 
-| Tool | Role |
-|---|---|
-| electron-vite | Bundles main, preload, and renderer |
-| Vite + @vitejs/plugin-react | Renderer dev server + HMR |
-| electron-builder | Packages installers (dmg, nsis, msi, AppImage, deb) |
-| TypeScript project references | Incremental type-checking |
-| Vitest | Unit tests |
-| ESLint + Prettier | Linting + formatting |
+| Tool                          | Role                                                |
+| ----------------------------- | --------------------------------------------------- |
+| electron-vite                 | Bundles main, preload, and renderer                 |
+| Vite + @vitejs/plugin-react   | Renderer dev server + HMR                           |
+| electron-builder              | Packages installers (dmg, nsis, msi, AppImage, deb) |
+| TypeScript project references | Incremental type-checking                           |
+| Vitest                        | Unit tests                                          |
+| ESLint + Prettier             | Linting + formatting                                |
