@@ -1,0 +1,43 @@
+{
+  "name": "awapi-mindmap-root",
+  "version": "0.0.0",
+  "private": true,
+  "description": "AwapiMindmap — cross-platform mind map designer by Awapi.",
+  "author": "Awapi",
+  "license": "SEE LICENSE IN LICENSE",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "packageManager": "pnpm@10.33.1",
+  "scripts": {
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc -b",
+    "test": "vitest run --coverage",
+    "test:watch": "vitest",
+    "dev": "pnpm --filter @awapi/mindmap-desktop dev",
+    "build": "pnpm -r run build",
+    "clean": "pnpm -r exec rm -rf dist out build coverage .turbo .tsbuildinfo && rm -rf release coverage"
+  },
+  "devDependencies": {
+    "@types/node": "^22.8.0",
+    "@typescript-eslint/eslint-plugin": "^8.10.0",
+    "@typescript-eslint/parser": "^8.10.0",
+    "@vitest/coverage-v8": "^2.1.4",
+    "eslint": "^9.13.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.3.3",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron",
+      "esbuild"
+    ]
+  }
+}

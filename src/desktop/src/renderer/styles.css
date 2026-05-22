@@ -1,0 +1,682 @@
+/* =========================================================================
+   AwapiMindmap — global styles
+   ========================================================================= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* Dark theme (default) */
+  --bg: #1a1a2e;
+  --surface: #16213e;
+  --border: #0f3460;
+  --text: #e0e0e0;
+  --text-muted: #9090a0;
+  --accent: #e94560;
+  --node-bg: #0f3460;
+  --node-text: #e0e0e0;
+}
+
+:root[data-theme='light'] {
+  --bg: #f5f5f5;
+  --surface: #ffffff;
+  --border: #d0d0d0;
+  --text: #1a1a2e;
+  --text-muted: #606070;
+  --accent: #e94560;
+  --node-bg: #dde8ff;
+  --node-text: #1a1a2e;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family:
+    'Inter',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+/* Canvas wrapper fills the remaining space */
+.canvas-wrapper {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  outline: none; /* suppress focus ring on the keyboard-listener div */
+}
+
+/* ReactFlow container — fills remaining height below toolbar */
+.canvas-flow {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Toolbar */
+.canvas-toolbar {
+  display: flex;
+  gap: 6px;
+  padding: 5px 10px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.toolbar-btn {
+  padding: 4px 10px;
+  background: var(--node-bg);
+  color: var(--node-text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.toolbar-btn:hover:not(:disabled) {
+  opacity: 0.8;
+}
+
+.toolbar-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.toolbar-spacer {
+  flex: 1;
+}
+
+/* Empty state */
+.canvas-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  font-size: 1rem;
+}
+
+.canvas-empty kbd {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.85em;
+  font-family: inherit;
+}
+
+/* React Flow overrides */
+.react-flow__node {
+  background: var(--node-bg);
+  color: var(--node-text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 0.875rem;
+}
+
+.react-flow__node.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+/* Strip the default wrapper styles for our custom editableNode type.
+   All visual styling lives inside .editable-node itself. */
+.react-flow__node-editableNode {
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+}
+
+.react-flow__node-editableNode.selected {
+  border: none;
+  box-shadow: none;
+}
+
+/* =========================================================================
+   Editable node (custom React Flow node type)
+   ========================================================================= */
+
+.editable-node {
+  background: var(--node-bg);
+  color: var(--node-text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 10px;
+  min-width: 80px;
+  text-align: center;
+  cursor: default;
+  user-select: none;
+  /* Fill the React Flow node wrapper when an explicit size has been set */
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.editable-node.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 calc(1px * var(--zoom-inv, 1)) var(--accent);
+  border-width: calc(1px * var(--zoom-inv, 1));
+}
+
+.editable-node__label {
+  display: block;
+  white-space: pre;
+}
+
+.editable-node__input {
+  background: transparent;
+  color: var(--node-text);
+  border: none;
+  outline: none;
+  font-size: inherit;
+  font-family: inherit;
+  text-align: center;
+  width: 100%;
+  min-width: 60px;
+}
+
+/* ---- Shape variants ---- */
+
+/* rectangle: default — no extra rules needed */
+
+/* circle */
+.editable-node.shape-circle {
+  border-radius: 50%;
+  /* Let NodeResizer control dimensions; keep a CSS minimum as fallback */
+  min-width: 50px;
+  min-height: 50px;
+  padding: 6px;
+}
+
+.editable-node.shape-circle .editable-node__label {
+  white-space: normal;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+/* text only */
+.editable-node.shape-text {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  padding: 4px 6px;
+}
+
+.editable-node.shape-text.selected {
+  border-color: transparent;
+  box-shadow: none;
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+}
+
+/* Horizontal alignment — only applied to the text shape. */
+.editable-node.shape-text.align-left   { justify-content: flex-start; text-align: left;   }
+.editable-node.shape-text.align-center { justify-content: center;     text-align: center; }
+.editable-node.shape-text.align-right  { justify-content: flex-end;   text-align: right;  }
+.editable-node.shape-text .editable-node__label { white-space: pre-wrap; width: 100%; }
+.editable-node.shape-text .editable-node__input { text-align: inherit; }
+.editable-node__input--multiline {
+  resize: none;
+  overflow: hidden;
+  white-space: pre-wrap;
+  line-height: 1.2;
+  padding: 0;
+  margin: 0;
+}
+
+/* ellipse — like circle but free aspect ratio */
+.editable-node.shape-ellipse {
+  border-radius: 50%;
+  min-width: 60px;
+  min-height: 40px;
+  padding: 6px;
+}
+
+.editable-node.shape-ellipse .editable-node__label {
+  white-space: normal;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+/* diamond — clip to a rhombus polygon; drop-shadow creates the visible border */
+.editable-node.shape-diamond {
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  filter: drop-shadow(0 0 1px var(--border)) drop-shadow(0 0 1px var(--border));
+  min-width: 100px;
+  min-height: 80px;
+  /* Extra horizontal padding so text clears the clipped corners */
+  padding: 10px 32px;
+}
+
+.editable-node.shape-diamond.selected {
+  border: none;
+  box-shadow: none;
+  filter: drop-shadow(0 0 calc(2px * var(--zoom-inv, 1)) var(--accent))
+          drop-shadow(0 0 calc(2px * var(--zoom-inv, 1)) var(--accent));
+}
+
+.editable-node.shape-diamond .editable-node__label {
+  white-space: normal;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  text-align: center;
+}
+
+/* Stack the source+target handles at each side so they look like one dot.
+   Sizes use `--zoom-inv` (1 / viewport zoom) so they stay visually constant
+   regardless of zoom level. */
+.editable-node .react-flow__handle {
+  width: calc(10px * var(--zoom-inv, 1));
+  height: calc(10px * var(--zoom-inv, 1));
+  border-width: calc(1px * var(--zoom-inv, 1));
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+/* Keep handles fully inside the node so edges connect flush to the border
+   (React Flow's default transforms push half the handle outside the node,
+   which makes edges stop short of the visible border). */
+.editable-node .react-flow__handle-top    { transform: translate(-50%, 0); }
+.editable-node .react-flow__handle-bottom { transform: translate(-50%, 0); }
+.editable-node .react-flow__handle-left   { transform: translate(0, -50%); }
+.editable-node .react-flow__handle-right  { transform: translate(0, -50%); }
+
+.react-flow__node-editableNode:hover .react-flow__handle,
+.react-flow__node-editableNode.selected .react-flow__handle {
+  opacity: 1;
+}
+
+/* NodeResizer chrome — keep corner/edge handles and outline lines a constant
+   on-screen size while the viewport is zoomed. */
+.react-flow__resize-control.handle {
+  width: calc(8px * var(--zoom-inv, 1)) !important;
+  height: calc(8px * var(--zoom-inv, 1)) !important;
+  border-width: calc(1px * var(--zoom-inv, 1)) !important;
+}
+.react-flow__resize-control.line {
+  border-width: calc(1px * var(--zoom-inv, 1)) !important;
+}
+
+/* =========================================================================
+   Context menu
+   ========================================================================= */
+
+.context-menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 160px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  padding: 4px 0;
+  overflow: hidden;
+}
+
+.context-menu__item {
+  display: block;
+  width: 100%;
+  padding: 7px 14px;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.context-menu__item:hover:not(:disabled) {
+  background: var(--node-bg);
+}
+
+.context-menu__item:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.context-menu__divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 3px 0;
+}
+
+/* Colour swatch row inside the context menu */
+.context-menu__swatch-row {
+  padding: 4px 10px 6px;
+}
+
+.context-menu__swatch-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 5px;
+}
+
+.context-menu__swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.context-menu__swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.1s, border-color 0.1s;
+  flex-shrink: 0;
+}
+
+.context-menu__swatch:hover {
+  transform: scale(1.2);
+  border-color: var(--text);
+}
+
+.context-menu__swatch--reset {
+  background: var(--node-bg);
+  border: 2px dashed var(--text-muted);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  width: auto;
+  padding: 0 4px;
+  white-space: nowrap;
+}
+
+/* =========================================================================
+   Shape picker (drag-to-create popup)
+   ========================================================================= */
+
+.shape-picker {
+  position: fixed;
+  z-index: 1000;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+  padding: 10px 12px;
+  transform: translate(-50%, -110%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shape-picker__label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.shape-picker__options {
+  display: flex;
+  gap: 8px;
+}
+
+.shape-picker__btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 10px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  min-width: 56px;
+}
+
+.shape-picker__btn:hover {
+  background: var(--node-bg);
+  border-color: var(--accent);
+}
+
+/* Shape preview icons */
+.shape-picker__icon {
+  display: block;
+  width: 28px;
+  height: 28px;
+  background: var(--node-bg);
+  border: 2px solid var(--text);
+}
+
+.shape-picker__icon--rectangle {
+  border-radius: 4px;
+}
+
+.shape-picker__icon--circle {
+  border-radius: 50%;
+}
+
+.shape-picker__icon--text {
+  background: transparent;
+  border-color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+}
+
+.shape-picker__icon--text::after {
+  content: 'T';
+}
+
+.shape-picker__icon--ellipse {
+  border-radius: 50%;
+  width: 32px;
+  height: 20px;
+}
+
+.shape-picker__icon--diamond {
+  transform: rotate(45deg);
+  border-radius: 3px;
+  width: 20px;
+  height: 20px;
+}
+
+.shape-picker__name {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+/* =========================================================================
+   NodeResizer controls
+   ========================================================================= */
+
+.react-flow__resize-control.handle {
+  width: 8px;
+  height: 8px;
+  background: var(--surface);
+  border: 2px solid var(--accent);
+  border-radius: 2px;
+}
+
+.react-flow__resize-control.line {
+  border-color: var(--accent);
+  border-width: 1px;
+  opacity: 0.5;
+}
+
+/* =========================================================================
+   Edge reconnect grabbers (draggable endpoints on existing edges)
+   ========================================================================= */
+
+.react-flow__edgeupdater {
+  r: calc(5px * var(--zoom-inv, 1));     /* SVG circle radius */
+  fill: var(--accent);
+  stroke: var(--surface);
+  stroke-width: calc(2px * var(--zoom-inv, 1));
+  opacity: 0;
+  cursor: crosshair;
+  transition: opacity 0.15s;
+}
+
+/* Show grabbers when hovering the edge */
+.react-flow__edge:hover .react-flow__edgeupdater,
+.react-flow__edge.selected .react-flow__edgeupdater {
+  opacity: 1;
+}
+
+
+/* =========================================================================
+   Floating node formatting toolbar (appears above a selected node)
+   ========================================================================= */
+
+.node-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  color: var(--text);
+  font-size: 0.85rem;
+  user-select: none;
+}
+
+.node-toolbar__group {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.node-toolbar__divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--border);
+  margin: 2px 2px;
+}
+
+.node-toolbar__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.node-toolbar__btn:hover {
+  background: var(--node-bg);
+  border-color: var(--border);
+}
+
+.node-toolbar__btn.is-active {
+  background: var(--node-bg);
+  border-color: var(--text-muted);
+}
+
+.node-toolbar__font {
+  font-weight: 600;
+}
+
+.node-toolbar__swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.1s, border-color 0.1s;
+  flex-shrink: 0;
+}
+
+.node-toolbar__swatch:hover {
+  transform: scale(1.18);
+  border-color: var(--text);
+}
+
+.node-toolbar__swatch--reset {
+  background: transparent;
+  border: 1px dashed var(--text-muted);
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.node-toolbar__font--small { font-size: 11px; }
+.node-toolbar__font--large { font-size: 16px; }
+
+.node-toolbar__font-input {
+  width: 42px;
+  height: 24px;
+  padding: 0 4px;
+  text-align: center;
+  background: var(--node-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 0.8rem;
+  -moz-appearance: textfield;
+}
+.node-toolbar__font-input::-webkit-outer-spin-button,
+.node-toolbar__font-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.node-toolbar__font-input:focus {
+  outline: none;
+  border-color: var(--text-muted);
+}
