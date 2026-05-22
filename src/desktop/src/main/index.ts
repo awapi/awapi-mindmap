@@ -294,14 +294,14 @@ async function buildMenu(): Promise<void> {
                   message: `Version ${result.updateInfo.version} is available.`,
                   detail: 'The update will be downloaded and installed automatically.',
                 };
-                win ? dialog.showMessageBox(win, opts) : dialog.showMessageBox(opts);
+                void (win ? dialog.showMessageBox(win, opts) : dialog.showMessageBox(opts));
               } else {
                 const opts: Electron.MessageBoxOptions = {
                   type: 'info',
                   title: 'No Updates',
                   message: 'You are already on the latest version.',
                 };
-                win ? dialog.showMessageBox(win, opts) : dialog.showMessageBox(opts);
+                void (win ? dialog.showMessageBox(win, opts) : dialog.showMessageBox(opts));
               }
             } catch {
               const opts: Electron.MessageBoxOptions = {
@@ -309,7 +309,7 @@ async function buildMenu(): Promise<void> {
                 title: 'Update Check Failed',
                 message: 'Unable to check for updates. Please try again later.',
               };
-              win ? dialog.showMessageBox(win, opts) : dialog.showMessageBox(opts);
+              void (win ? dialog.showMessageBox(win, opts) : dialog.showMessageBox(opts));
             }
           },
         },
@@ -399,17 +399,20 @@ function registerIpcHandlers(): void {
   });
 
   // Updater
-  ipcMain.handle(IpcChannel.UpdaterCheck, async (): Promise<{ available: boolean; version?: string }> => {
-    try {
-      const result = await autoUpdater.checkForUpdates();
-      if (result && result.updateInfo.version !== app.getVersion()) {
-        return { available: true, version: result.updateInfo.version };
+  ipcMain.handle(
+    IpcChannel.UpdaterCheck,
+    async (): Promise<{ available: boolean; version?: string }> => {
+      try {
+        const result = await autoUpdater.checkForUpdates();
+        if (result && result.updateInfo.version !== app.getVersion()) {
+          return { available: true, version: result.updateInfo.version };
+        }
+        return { available: false };
+      } catch {
+        return { available: false };
       }
-      return { available: false };
-    } catch {
-      return { available: false };
-    }
-  });
+    },
+  );
 
   // Autosave
   ipcMain.handle(IpcChannel.AutosaveWrite, async (_event, payload: AutosavePayload) => {
