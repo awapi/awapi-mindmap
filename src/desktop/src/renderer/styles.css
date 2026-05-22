@@ -195,6 +195,9 @@ body,
   text-align: center;
   width: 100%;
   min-width: 60px;
+  /* Allow the user to select text with the mouse inside the textarea */
+  user-select: text;
+  cursor: text;
 }
 
 /* Non-text shapes use centered textarea but no manual line breaks */
@@ -265,6 +268,30 @@ body,
   line-height: 1.2;
   padding: 0;
   margin: 0;
+}
+
+/* contentEditable div used during inline text editing */
+.editable-node__editor {
+  background: transparent;
+  color: inherit;
+  outline: none;
+  font-size: inherit;
+  font-family: inherit;
+  text-align: inherit;
+  width: 100%;
+  min-width: 60px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.2;
+  padding: 0;
+  margin: 0;
+  user-select: text;
+  cursor: text;
+}
+
+.editable-node__editor--centered {
+  text-align: center;
 }
 
 /* ellipse — like circle but free aspect ratio */
@@ -737,6 +764,34 @@ body,
 .node-toolbar__font-input:focus {
   outline: none;
   border-color: var(--text-muted);
+}
+
+.node-toolbar__font-select {
+  height: 24px;
+  padding: 0 4px;
+  background: var(--node-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 0.8rem;
+  cursor: pointer;
+  max-width: 88px;
+}
+.node-toolbar__font-select:focus {
+  outline: none;
+  border-color: var(--text-muted);
+}
+
+/* Bold / Italic style toggle buttons — slightly wider to accommodate B/I glyphs */
+.node-toolbar__style-btn {
+  min-width: 22px;
+  font-size: 0.85rem;
+}
+
+/* Text-colour swatches inside the text-editing toolbar get a thin border so
+   the lightest colours (white, light-gray) are still visible. */
+.text-editing-toolbar .node-toolbar__swatch {
+  border: 1px solid var(--border);
 }
 
 .node-toolbar__label {

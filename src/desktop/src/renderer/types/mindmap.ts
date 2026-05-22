@@ -26,6 +26,18 @@ export interface MindMapNode {
   fontSize?: number;
   /** Horizontal text alignment. Currently only honoured for the 'text' shape. Defaults to 'center'. */
   textAlign?: 'left' | 'center' | 'right';
+  /** Text colour (CSS colour string). For 'text' shape nodes this is the label colour; for shaped nodes it overrides the default node text colour. */
+  textColor?: string;
+  /** Font family override (CSS font-family string). Defaults to inherited UI font. */
+  fontFamily?: string;
+  /** Font weight override. Defaults to 'normal'. */
+  fontWeight?: 'normal' | 'bold';
+  /** Font style override. Defaults to 'normal'. */
+  fontStyle?: 'normal' | 'italic';
+  /** Rich text label as an HTML string. Set when the user has applied per-character
+   *  formatting (bold, italic, colour, font size). When absent, `label` is rendered
+   *  as plain text. */
+  richLabel?: string;
   /** Collapsed children are hidden on the canvas. */
   collapsed?: boolean;
 }

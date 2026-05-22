@@ -46,7 +46,7 @@ export interface MindMapState {
   addNodes: (nodes: MindMapNode[], edges: MindMapEdge[]) => void;
   deleteNodes: (ids: string[]) => void;
   deleteEdges: (ids: string[]) => void;
-  renameNode: (id: string, label: string) => void;
+  renameNode: (id: string, label: string, richLabel?: string) => void;
   addEdge: (edge: MindMapEdge) => void;
   reconnectEdge: (oldId: string, newEdge: MindMapEdge) => void;
   resizeNode: (
@@ -71,6 +71,10 @@ export interface MindMapState {
   setNodeColor: (ids: string[], color: string | undefined) => void;
   setNodeFontSize: (ids: string[], fontSize: number | undefined) => void;
   setNodeTextAlign: (ids: string[], textAlign: 'left' | 'center' | 'right' | undefined) => void;
+  setNodeTextColor: (ids: string[], textColor: string | undefined) => void;
+  setNodeFontFamily: (ids: string[], fontFamily: string | undefined) => void;
+  setNodeFontWeight: (ids: string[], fontWeight: 'normal' | 'bold' | undefined) => void;
+  setNodeFontStyle: (ids: string[], fontStyle: 'normal' | 'italic' | undefined) => void;
   setEdgeStyle: (id: string, style: EdgeStyle) => void;
   setEdgeColor: (ids: string[], color: string | undefined) => void;
   setEdgeWidth: (ids: string[], width: number | undefined) => void;
@@ -202,7 +206,7 @@ export const useMindMapStore = create<MindMapState>()((set) => ({
       };
     }),
 
-  renameNode: (id, label) =>
+  renameNode: (id, label, richLabel) =>
     set((s) => {
       if (!s.mindMap) return {};
       return {
@@ -210,7 +214,7 @@ export const useMindMapStore = create<MindMapState>()((set) => ({
         future: [],
         mindMap: {
           ...s.mindMap,
-          nodes: s.mindMap.nodes.map((n) => (n.id === id ? { ...n, label } : n)),
+          nodes: s.mindMap.nodes.map((n) => (n.id === id ? { ...n, label, richLabel } : n)),
           updatedAt: new Date().toISOString(),
         },
         isDirty: true,
@@ -386,6 +390,70 @@ export const useMindMapStore = create<MindMapState>()((set) => ({
         mindMap: {
           ...s.mindMap,
           nodes: s.mindMap.nodes.map((n) => (idSet.has(n.id) ? { ...n, textAlign } : n)),
+          updatedAt: new Date().toISOString(),
+        },
+        isDirty: true,
+      };
+    }),
+
+  setNodeTextColor: (ids, textColor) =>
+    set((s) => {
+      if (!s.mindMap || ids.length === 0) return {};
+      const idSet = new Set(ids);
+      return {
+        history: pushHistory(s.history, s.mindMap),
+        future: [],
+        mindMap: {
+          ...s.mindMap,
+          nodes: s.mindMap.nodes.map((n) => (idSet.has(n.id) ? { ...n, textColor } : n)),
+          updatedAt: new Date().toISOString(),
+        },
+        isDirty: true,
+      };
+    }),
+
+  setNodeFontFamily: (ids, fontFamily) =>
+    set((s) => {
+      if (!s.mindMap || ids.length === 0) return {};
+      const idSet = new Set(ids);
+      return {
+        history: pushHistory(s.history, s.mindMap),
+        future: [],
+        mindMap: {
+          ...s.mindMap,
+          nodes: s.mindMap.nodes.map((n) => (idSet.has(n.id) ? { ...n, fontFamily } : n)),
+          updatedAt: new Date().toISOString(),
+        },
+        isDirty: true,
+      };
+    }),
+
+  setNodeFontWeight: (ids, fontWeight) =>
+    set((s) => {
+      if (!s.mindMap || ids.length === 0) return {};
+      const idSet = new Set(ids);
+      return {
+        history: pushHistory(s.history, s.mindMap),
+        future: [],
+        mindMap: {
+          ...s.mindMap,
+          nodes: s.mindMap.nodes.map((n) => (idSet.has(n.id) ? { ...n, fontWeight } : n)),
+          updatedAt: new Date().toISOString(),
+        },
+        isDirty: true,
+      };
+    }),
+
+  setNodeFontStyle: (ids, fontStyle) =>
+    set((s) => {
+      if (!s.mindMap || ids.length === 0) return {};
+      const idSet = new Set(ids);
+      return {
+        history: pushHistory(s.history, s.mindMap),
+        future: [],
+        mindMap: {
+          ...s.mindMap,
+          nodes: s.mindMap.nodes.map((n) => (idSet.has(n.id) ? { ...n, fontStyle } : n)),
           updatedAt: new Date().toISOString(),
         },
         isDirty: true,

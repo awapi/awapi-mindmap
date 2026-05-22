@@ -2,7 +2,13 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import type { JSX } from 'react';
 import { Handle, Position, NodeResizer, type NodeProps, useReactFlow } from '@xyflow/react';
 import { useMindMapStore, useUIStore } from '../state/stores.js';
+import { TextEditingToolbar } from './TextEditingToolbar.js';
 import type { NodeShape } from '../types/mindmap.js';
+
+/** Escape plain text for safe insertion as innerHTML. */
+function htmlEscape(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 
 export function EditableNode({ id, data, selected }: NodeProps): JSX.Element {
   const renameNode = useMindMapStore((s) => s.renameNode);
@@ -12,64 +18,74 @@ export function EditableNode({ id, data, selected }: NodeProps): JSX.Element {
   const shape: NodeShape = (data.shape as NodeShape | undefined) ?? 'rectangle';
   const textAlign = (data.textAlign as 'left' | 'center' | 'right' | undefined) ?? 'center';
   const color = data.color as string | undefined;
+  const textColor = data.textColor as string | undefined;
+  const fontFamily = data.fontFamily as string | undefined;
+  const fontWeight = data.fontWeight as 'normal' | 'bold' | undefined;
+  const fontStyle = data.fontStyle as 'normal' | 'italic' | undefined;
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(String(data.label ?? ''));
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const contentEditableRef = useRef<HTMLDivElement>(null);
   const isText = shape === 'text';
 
-  // Keep draft in sync when label changes externally (e.g. undo/redo)
-  useEffect(() => {
-    if (!editing) {
-      setDraft(String(data.label ?? ''));
-    }
-  }, [data.label, editing]);
-
-  // Focus + select all text when editing begins
-  useEffect(() => {
-    if (editing) {
-      inputRef.current?.select();
-    }
-  }, [editing]);
-
-  // Auto-grow textarea height as user types
-  useEffect(() => {
-    const el = inputRef.current;
-    if (!el || !editing) return;
-    el.style.height = 'auto';
-    el.style.height = `${el.scrollHeight}px`;
-  }, [draft, editing]);
-
   const commitEdit = useCallback(() => {
-    const trimmed = isText ? draft.replace(/\s+$/, '') : draft.trim();
-    if (trimmed && trimmed !== String(data.label ?? '')) {
-      renameNode(id, trimmed);
-      // Patch the local React Flow node data so the label renders immediately
-      // without waiting for a full store→canvas sync.
-      setNodes((nds) =>
-        nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, label: trimmed } } : n)),
-      );
+    const el = contentEditableRef.current;
+    if (el) {
+      const html = el.innerHTML;
+      const rawText = el.textContent ?? '';
+      const trimmed = isText ? rawText.replace(/\s+$/, '') : rawText.trim();
+      if (trimmed) {
+        renameNode(id, trimmed, html);
+        setNodes((nds) =>
+          nds.map((n) =>
+            n.id === id ? { ...n, data: { ...n.data, label: trimmed, richLabel: html } } : n,
+          ),
+        );
+      }
     }
     setEditing(false);
     setEditingNodeId(null);
-  }, [draft, data.label, id, renameNode, setNodes, isText, setEditingNodeId]);
+  }, [id, renameNode, setNodes, isText, setEditingNodeId]);
+
+  // Blur handler: don't commit if focus moved into the text-editing toolbar.
+  const handleBlur = useCallback(
+    (e: React.FocusEvent<HTMLDivElement>) => {
+      const rt = e.relatedTarget as HTMLElement | null;
+      if (rt?.closest('.text-editing-toolbar')) {
+        return;
+      }
+      commitEdit();
+    },
+    [commitEdit],
+  );
 
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      setDraft(String(data.label ?? ''));
       setEditing(true);
       setEditingNodeId(id);
+      // Set innerHTML after React renders the contentEditable div.
+      requestAnimationFrame(() => {
+        const el = contentEditableRef.current;
+        if (!el) return;
+        el.innerHTML =
+          (data.richLabel as string | undefined) ?? htmlEscape(String(data.label ?? ''));
+        el.focus();
+        const sel = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+      });
     },
-    [data.label, id, setEditingNodeId],
+    [data.label, data.richLabel, id, setEditingNodeId],
   );
 
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.key === 'Enter') {
-        // For the text shape, Shift+Enter inserts a newline (textarea default);
-        // a bare Enter commits.
         if (isText && e.shiftKey) {
-          // allow newline insertion
+          // Insert a <br> line break in the contentEditable.
+          e.preventDefault();
+          document.execCommand('insertLineBreak');
         } else {
           e.preventDefault();
           commitEdit();
@@ -79,7 +95,6 @@ export function EditableNode({ id, data, selected }: NodeProps): JSX.Element {
         setEditing(false);
         setEditingNodeId(null);
       }
-      // Stop propagation so the canvas keyboard handler doesn't intercept
       e.stopPropagation();
     },
     [commitEdit, isText, setEditingNodeId],
@@ -116,6 +131,15 @@ export function EditableNode({ id, data, selected }: NodeProps): JSX.Element {
 
   return (
     <>
+      {editing && (
+        <TextEditingToolbar
+          nodeId={id}
+          fontSize={data.fontSize as number | undefined}
+          fontFamily={fontFamily}
+          containerRef={contentEditableRef}
+          onInteractionDone={() => contentEditableRef.current?.focus()}
+        />
+      )}
       <NodeResizer
         isVisible={selected}
         minWidth={minWidth}
@@ -134,22 +158,34 @@ export function EditableNode({ id, data, selected }: NodeProps): JSX.Element {
       <Handle id="bottom" type="source" position={Position.Bottom} />
       <Handle id="left" type="source" position={Position.Left} />
       <div
-        className={`editable-node shape-${shape}${shape === 'text' ? ` align-${textAlign}` : ''}${selected ? ' selected' : ''}`}
+        className={`editable-node shape-${shape}${shape === 'text' ? ` align-${textAlign}` : ''}${selected ? ' selected' : ''}${editing ? ' nodrag' : ''}`}
         style={{
           ...(data.fontSize ? { fontSize: `${data.fontSize}px` } : {}),
-          ...(color ? { background: color } : {}),
+          ...(fontFamily ? { fontFamily } : {}),
+          ...(fontWeight ? { fontWeight } : {}),
+          ...(fontStyle ? { fontStyle } : {}),
+          ...(shape === 'text'
+            ? { ...(textColor ? { color: textColor } : {}) }
+            : {
+                ...(color ? { background: color } : {}),
+                ...(textColor ? { color: textColor } : {}),
+              }),
         }}
         onDoubleClick={handleDoubleClick}
       >
         {editing ? (
-          <textarea
-            ref={inputRef}
-            className={`editable-node__input editable-node__input--multiline${isText ? '' : ' editable-node__input--centered'}`}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={commitEdit}
+          <div
+            ref={contentEditableRef}
+            className={`editable-node__editor${isText ? '' : ' editable-node__editor--centered'}`}
+            contentEditable
+            suppressContentEditableWarning
+            onBlur={handleBlur}
             onKeyDown={handleKeyDown}
-            rows={Math.max(1, draft.split('\n').length)}
+          />
+        ) : (data.richLabel as string | undefined) ? (
+          <span
+            className="editable-node__label"
+            dangerouslySetInnerHTML={{ __html: data.richLabel as string }}
           />
         ) : (
           <span className="editable-node__label">{String(data.label ?? '')}</span>

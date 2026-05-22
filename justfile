@@ -89,6 +89,9 @@ release version mode="":
     git push origin main --follow-tags
     {{ if mode == "publish" { "just _publish-packages" } else { "" } }}
 
-# (private) Build all-platform packages and upload to GitHub Releases.
+# (private) Build packages for the current host OS and upload to GitHub Releases.
+# macOS builds are only possible on macOS; on Windows/Linux hosts mac targets are skipped.
+# For a full cross-platform release, push the tag and let CI build all platforms
+# (i.e. use `just release <version>` without `publish`).
 _publish-packages: build
-    ./src/desktop/node_modules/.bin/electron-builder --config {{justfile_directory()}}/electron-builder.yml --projectDir src/desktop -mwl --publish always
+    ./src/desktop/node_modules/.bin/electron-builder --config {{justfile_directory()}}/electron-builder.yml --projectDir src/desktop {{ if os() == "macos" { "-mwl" } else if os() == "windows" { "-wl" } else { "-l" } }} --publish always

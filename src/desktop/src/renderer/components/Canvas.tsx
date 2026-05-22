@@ -84,7 +84,18 @@ function toFlowNode(n: MindMapNode): Node {
     id: n.id,
     type: nodeType,
     position: n.position,
-    data: { label: n.label, shape, fontSize: n.fontSize, textAlign: n.textAlign, color: n.color },
+    data: {
+      label: n.label,
+      richLabel: n.richLabel,
+      shape,
+      fontSize: n.fontSize,
+      textAlign: n.textAlign,
+      color: n.color,
+      textColor: n.textColor,
+      fontFamily: n.fontFamily,
+      fontWeight: n.fontWeight,
+      fontStyle: n.fontStyle,
+    },
     ...(width != null ? { width } : {}),
     ...(height != null ? { height } : {}),
   };
@@ -156,7 +167,6 @@ function CanvasFlow(): JSX.Element {
   const deleteEdgesAction = useMindMapStore((s) => s.deleteEdges);
   const addEdgeAction = useMindMapStore((s) => s.addEdge);
   const reconnectEdgeAction = useMindMapStore((s) => s.reconnectEdge);
-  const syncPositions = useMindMapStore((s) => s.syncPositions);
   const setNodePositions = useMindMapStore((s) => s.setNodePositions);
   const setNodeSizes = useMindMapStore((s) => s.setNodeSizes);
   const setEdgeStyle = useMindMapStore((s) => s.setEdgeStyle);
@@ -305,10 +315,22 @@ function CanvasFlow(): JSX.Element {
   );
 
   const onNodeDragStop = useCallback(
-    (_: React.MouseEvent, node: Node) => {
-      syncPositions([{ id: node.id, position: node.position }]);
+    (_: React.MouseEvent, node: Node, draggedNodes: Node[]) => {
+      // When a multi-selection is dragged, React Flow calls this once per
+      // dragged node. Coalesce into a single history snapshot in
+      // onSelectionDragStop and skip here.
+      if (draggedNodes.length > 1) return;
+      setNodePositions([{ id: node.id, position: node.position }]);
     },
-    [syncPositions],
+    [setNodePositions],
+  );
+
+  const onSelectionDragStop = useCallback(
+    (_: React.MouseEvent, draggedNodes: Node[]) => {
+      if (draggedNodes.length === 0) return;
+      setNodePositions(draggedNodes.map((n) => ({ id: n.id, position: n.position })));
+    },
+    [setNodePositions],
   );
 
   // --- Add node helper used by toolbar and context menu ---
@@ -398,17 +420,6 @@ function CanvasFlow(): JSX.Element {
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
 
       const isMeta = e.metaKey || e.ctrlKey;
-
-      if (isMeta && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        undo();
-        return;
-      }
-      if (isMeta && (e.key === 'Z' || (e.key === 'z' && e.shiftKey))) {
-        e.preventDefault();
-        redo();
-        return;
-      }
 
       // Copy / Cut / Paste --------------------------------------------------
       if (isMeta && (e.key === 'c' || e.key === 'C' || e.key === 'x' || e.key === 'X')) {
@@ -505,17 +516,7 @@ function CanvasFlow(): JSX.Element {
         }
       }
     },
-    [
-      nodes,
-      edges,
-      deleteNodesAction,
-      deleteEdgesAction,
-      addNodesAction,
-      setNodes,
-      setEdges,
-      undo,
-      redo,
-    ],
+    [nodes, edges, deleteNodesAction, deleteEdgesAction, addNodesAction, setNodes, setEdges],
   );
 
   // --- Context menu ---
@@ -803,6 +804,8 @@ function CanvasFlow(): JSX.Element {
     };
   }, [nodes]);
 
+  // Hide the toolbar while a single node is being edited; the TextEditingToolbar
+  // inside EditableNode handles text-specific formatting during editing.
   const showFormattingToolbar =
     formattingSelection.nodeIds.length > 0 &&
     !(formattingSelection.nodeIds.length === 1 && editingNodeId === formattingSelection.nodeIds[0]);
@@ -891,6 +894,7 @@ function CanvasFlow(): JSX.Element {
             onReconnect={onReconnect}
             edgesReconnectable
             onNodeDragStop={onNodeDragStop}
+            onSelectionDragStop={onSelectionDragStop}
             onPaneClick={onPaneClick}
             onPaneContextMenu={onPaneContextMenu}
             onNodeContextMenu={onNodeContextMenu}
