@@ -1,7 +1,7 @@
 {
   "name": "@awapi/mindmap-desktop",
   "productName": "AwapiMindmap",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "main": "./out/main/index.js",
   "description": "AwapiMindmap — cross-platform mind map designer.",
