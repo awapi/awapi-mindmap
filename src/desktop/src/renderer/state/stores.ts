@@ -47,10 +47,10 @@ export interface MindMapState {
     position: { x: number; y: number },
   ) => void;
   syncPositions: (updates: Array<{ id: string; position: { x: number; y: number } }>) => void;
-  setNodeShape: (id: string, shape: NodeShape) => void;
-  setNodeColor: (id: string, color: string | undefined) => void;
-  setNodeFontSize: (id: string, fontSize: number | undefined) => void;
-  setNodeTextAlign: (id: string, textAlign: 'left' | 'center' | 'right' | undefined) => void;
+  setNodeShape: (ids: string[], shape: NodeShape) => void;
+  setNodeColor: (ids: string[], color: string | undefined) => void;
+  setNodeFontSize: (ids: string[], fontSize: number | undefined) => void;
+  setNodeTextAlign: (ids: string[], textAlign: 'left' | 'center' | 'right' | undefined) => void;
   setEdgeStyle: (id: string, style: EdgeStyle) => void;
 
   // Undo / redo
@@ -244,60 +244,64 @@ export const useMindMapStore = create<MindMapState>()((set) => ({
       };
     }),
 
-  setNodeShape: (id, shape) =>
+  setNodeShape: (ids, shape) =>
     set((s) => {
-      if (!s.mindMap) return {};
+      if (!s.mindMap || ids.length === 0) return {};
+      const idSet = new Set(ids);
       return {
         history: pushHistory(s.history, s.mindMap),
         future: [],
         mindMap: {
           ...s.mindMap,
-          nodes: s.mindMap.nodes.map((n) => (n.id === id ? { ...n, shape } : n)),
+          nodes: s.mindMap.nodes.map((n) => (idSet.has(n.id) ? { ...n, shape } : n)),
           updatedAt: new Date().toISOString(),
         },
         isDirty: true,
       };
     }),
 
-  setNodeColor: (id, color) =>
+  setNodeColor: (ids, color) =>
     set((s) => {
-      if (!s.mindMap) return {};
+      if (!s.mindMap || ids.length === 0) return {};
+      const idSet = new Set(ids);
       return {
         history: pushHistory(s.history, s.mindMap),
         future: [],
         mindMap: {
           ...s.mindMap,
-          nodes: s.mindMap.nodes.map((n) => (n.id === id ? { ...n, color } : n)),
+          nodes: s.mindMap.nodes.map((n) => (idSet.has(n.id) ? { ...n, color } : n)),
           updatedAt: new Date().toISOString(),
         },
         isDirty: true,
       };
     }),
 
-  setNodeFontSize: (id, fontSize) =>
+  setNodeFontSize: (ids, fontSize) =>
     set((s) => {
-      if (!s.mindMap) return {};
+      if (!s.mindMap || ids.length === 0) return {};
+      const idSet = new Set(ids);
       return {
         history: pushHistory(s.history, s.mindMap),
         future: [],
         mindMap: {
           ...s.mindMap,
-          nodes: s.mindMap.nodes.map((n) => (n.id === id ? { ...n, fontSize } : n)),
+          nodes: s.mindMap.nodes.map((n) => (idSet.has(n.id) ? { ...n, fontSize } : n)),
           updatedAt: new Date().toISOString(),
         },
         isDirty: true,
       };
     }),
 
-  setNodeTextAlign: (id, textAlign) =>
+  setNodeTextAlign: (ids, textAlign) =>
     set((s) => {
-      if (!s.mindMap) return {};
+      if (!s.mindMap || ids.length === 0) return {};
+      const idSet = new Set(ids);
       return {
         history: pushHistory(s.history, s.mindMap),
         future: [],
         mindMap: {
           ...s.mindMap,
-          nodes: s.mindMap.nodes.map((n) => (n.id === id ? { ...n, textAlign } : n)),
+          nodes: s.mindMap.nodes.map((n) => (idSet.has(n.id) ? { ...n, textAlign } : n)),
           updatedAt: new Date().toISOString(),
         },
         isDirty: true,
@@ -369,3 +373,18 @@ export const useThemeStore = create<ThemeState>()(
     { name: THEME_STORAGE_KEY },
   ),
 );
+
+// ---------------------------------------------------------------------------
+// Transient UI state (not persisted, not undoable)
+// ---------------------------------------------------------------------------
+
+interface UIState {
+  /** ID of the node currently being edited inline, or null. */
+  editingNodeId: string | null;
+  setEditingNodeId: (id: string | null) => void;
+}
+
+export const useUIStore = create<UIState>()((set) => ({
+  editingNodeId: null,
+  setEditingNodeId: (id) => set({ editingNodeId: id }),
+}));

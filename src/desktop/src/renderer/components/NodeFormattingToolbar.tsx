@@ -5,11 +5,16 @@ import { useMindMapStore } from '../state/stores.js';
 import type { NodeShape } from '../types/mindmap.js';
 
 interface NodeFormattingToolbarProps {
-  nodeId: string;
-  selected: boolean;
-  currentShape: NodeShape;
+  /** IDs of all selected nodes the toolbar should apply changes to. */
+  nodeIds: string[];
+  /** Shared shape across all selected nodes, or `undefined` if mixed. */
+  currentShape: NodeShape | undefined;
+  /** Shared font size across all selected nodes, or `undefined` if mixed. */
   currentFontSize?: number;
+  /** Shared text alignment across all selected nodes, or `undefined` if mixed. */
   currentTextAlign?: 'left' | 'center' | 'right';
+  /** True when every selected node uses the `'text'` shape (controls visibility of the alignment group). */
+  allTextShape: boolean;
 }
 
 const SHAPE_OPTIONS: Array<{ shape: NodeShape; label: string; glyph: string }> = [
@@ -37,9 +42,7 @@ const FONT_STEP = 2;
 
 const clampFont = (n: number) => Math.max(FONT_MIN, Math.min(FONT_MAX, Math.round(n)));
 
-/** Excel-style alignment icon: four stacked horizontal bars positioned by alignment. */
 function AlignIcon({ align }: { align: 'left' | 'center' | 'right' }): JSX.Element {
-  // Bar geometry: alternating long/short widths so the alignment is clearly visible.
   const bars = [
     { y: 3, w: 12 },
     { y: 6, w: 8 },
@@ -57,67 +60,80 @@ function AlignIcon({ align }: { align: 'left' | 'center' | 'right' }): JSX.Eleme
 }
 
 export function NodeFormattingToolbar({
-  nodeId,
-  selected,
+  nodeIds,
   currentShape,
   currentFontSize,
   currentTextAlign,
-}: NodeFormattingToolbarProps): JSX.Element {
+  allTextShape,
+}: NodeFormattingToolbarProps): JSX.Element | null {
   const setNodeShape = useMindMapStore((s) => s.setNodeShape);
   const setNodeColor = useMindMapStore((s) => s.setNodeColor);
   const setNodeFontSize = useMindMapStore((s) => s.setNodeFontSize);
   const setNodeTextAlign = useMindMapStore((s) => s.setNodeTextAlign);
   const { setNodes } = useReactFlow();
 
+  const idSet = new Set(nodeIds);
+
   const applyShape = (shape: NodeShape) => {
-    setNodeShape(nodeId, shape);
-    setNodes((nds) => nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, shape } } : n)));
+    setNodeShape(nodeIds, shape);
+    setNodes((nds) =>
+      nds.map((n) => (idSet.has(n.id) ? { ...n, data: { ...n.data, shape } } : n)),
+    );
   };
 
   const applyColor = (color: string | undefined) => {
-    setNodeColor(nodeId, color);
+    setNodeColor(nodeIds, color);
     setNodes((nds) =>
-      nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, color } } : n)),
+      nds.map((n) => (idSet.has(n.id) ? { ...n, data: { ...n.data, color } } : n)),
     );
   };
 
   const applyFontSize = (size: number) => {
     const next = clampFont(size);
-    setNodeFontSize(nodeId, next);
+    setNodeFontSize(nodeIds, next);
     setNodes((nds) =>
-      nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, fontSize: next } } : n)),
+      nds.map((n) => (idSet.has(n.id) ? { ...n, data: { ...n.data, fontSize: next } } : n)),
     );
     return next;
   };
 
   const applyTextAlign = (align: 'left' | 'center' | 'right') => {
-    setNodeTextAlign(nodeId, align);
+    setNodeTextAlign(nodeIds, align);
     setNodes((nds) =>
-      nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, textAlign: align } } : n)),
+      nds.map((n) => (idSet.has(n.id) ? { ...n, data: { ...n.data, textAlign: align } } : n)),
     );
   };
 
   const effectiveFont = currentFontSize ?? FONT_DEFAULT;
-  const [fontDraft, setFontDraft] = useState<string>(String(effectiveFont));
+  const [fontDraft, setFontDraft] = useState<string>(
+    currentFontSize == null ? '' : String(currentFontSize),
+  );
 
-  // Keep the input in sync when the node's font size changes from elsewhere
-  // (undo/redo, A+/A- buttons, switching selection).
+  // Keep input in sync when selection changes or font is changed elsewhere.
+  // Show blank when font size is mixed across the selection.
   useEffect(() => {
-    setFontDraft(String(effectiveFont));
-  }, [effectiveFont, nodeId]);
+    setFontDraft(currentFontSize == null ? '' : String(currentFontSize));
+  }, [currentFontSize, nodeIds.join(',')]);
 
   const commitFontDraft = () => {
+    if (fontDraft.trim() === '') {
+      // Empty input is a no-op (preserves mixed state)
+      setFontDraft(currentFontSize == null ? '' : String(currentFontSize));
+      return;
+    }
     const parsed = parseInt(fontDraft, 10);
     if (!Number.isFinite(parsed)) {
-      setFontDraft(String(effectiveFont));
+      setFontDraft(currentFontSize == null ? '' : String(currentFontSize));
       return;
     }
     const next = applyFontSize(parsed);
     setFontDraft(String(next));
   };
 
+  if (nodeIds.length === 0) return null;
+
   return (
-    <NodeToolbar isVisible={selected} position={Position.Top} align="start" offset={48}>
+    <NodeToolbar nodeId={nodeIds} isVisible position={Position.Top} align="start" offset={48}>
       <div
         className="node-toolbar nodrag nopan"
         onDoubleClick={(e) => e.stopPropagation()}
@@ -178,6 +194,7 @@ export function NodeFormattingToolbar({
             min={FONT_MIN}
             max={FONT_MAX}
             value={fontDraft}
+            placeholder={currentFontSize == null ? '—' : undefined}
             title="Font size (px)"
             aria-label="Font size in pixels"
             onChange={(e) => setFontDraft(e.target.value)}
@@ -188,7 +205,7 @@ export function NodeFormattingToolbar({
                 commitFontDraft();
                 (e.target as HTMLInputElement).blur();
               } else if (e.key === 'Escape') {
-                setFontDraft(String(effectiveFont));
+                setFontDraft(currentFontSize == null ? '' : String(currentFontSize));
                 (e.target as HTMLInputElement).blur();
               }
               e.stopPropagation();
@@ -205,7 +222,7 @@ export function NodeFormattingToolbar({
           </button>
         </div>
 
-        {currentShape === 'text' && (
+        {allTextShape && (
           <>
             <div className="node-toolbar__divider" />
             <div className="node-toolbar__group" role="group" aria-label="Text alignment">
@@ -213,7 +230,7 @@ export function NodeFormattingToolbar({
                 <button
                   key={align}
                   type="button"
-                  className={`node-toolbar__btn${(currentTextAlign ?? 'center') === align ? ' is-active' : ''}`}
+                  className={`node-toolbar__btn${currentTextAlign === align ? ' is-active' : ''}`}
                   title={`Align ${align}`}
                   onClick={() => applyTextAlign(align)}
                 >

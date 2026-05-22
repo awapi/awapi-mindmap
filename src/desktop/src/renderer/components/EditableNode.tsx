@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { JSX } from 'react';
 import { Handle, Position, NodeResizer, type NodeProps, useReactFlow } from '@xyflow/react';
-import { useMindMapStore } from '../state/stores.js';
+import { useMindMapStore, useUIStore } from '../state/stores.js';
 import type { NodeShape } from '../types/mindmap.js';
-import { NodeFormattingToolbar } from './NodeFormattingToolbar.js';
 
 export function EditableNode({ id, data, selected }: NodeProps): JSX.Element {
   const renameNode = useMindMapStore((s) => s.renameNode);
   const resizeNode = useMindMapStore((s) => s.resizeNode);
+  const setEditingNodeId = useUIStore((s) => s.setEditingNodeId);
   const { setNodes } = useReactFlow();
   const shape: NodeShape = (data.shape as NodeShape | undefined) ?? 'rectangle';
   const textAlign = (data.textAlign as 'left' | 'center' | 'right' | undefined) ?? 'center';
@@ -50,15 +50,17 @@ export function EditableNode({ id, data, selected }: NodeProps): JSX.Element {
       );
     }
     setEditing(false);
-  }, [draft, data.label, id, renameNode, setNodes, isText]);
+    setEditingNodeId(null);
+  }, [draft, data.label, id, renameNode, setNodes, isText, setEditingNodeId]);
 
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
       setDraft(String(data.label ?? ''));
       setEditing(true);
+      setEditingNodeId(id);
     },
-    [data.label],
+    [data.label, id, setEditingNodeId],
   );
 
   const handleKeyDown = useCallback(
@@ -73,12 +75,23 @@ export function EditableNode({ id, data, selected }: NodeProps): JSX.Element {
           commitEdit();
         }
       }
-      if (e.key === 'Escape') setEditing(false);
+      if (e.key === 'Escape') {
+        setEditing(false);
+        setEditingNodeId(null);
+      }
       // Stop propagation so the canvas keyboard handler doesn't intercept
       e.stopPropagation();
     },
-    [commitEdit, isText],
+    [commitEdit, isText, setEditingNodeId],
   );
+
+  // Ensure global editing flag is cleared if this node unmounts mid-edit.
+  useEffect(() => {
+    return () => {
+      if (editing) setEditingNodeId(null);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Minimum dimensions per shape
   const minWidth =
@@ -104,13 +117,6 @@ export function EditableNode({ id, data, selected }: NodeProps): JSX.Element {
 
   return (
     <>
-      <NodeFormattingToolbar
-        nodeId={id}
-        selected={!!selected && !editing}
-        currentShape={shape}
-        currentFontSize={data.fontSize as number | undefined}
-        currentTextAlign={textAlign}
-      />
       <NodeResizer
         isVisible={selected}
         minWidth={minWidth}

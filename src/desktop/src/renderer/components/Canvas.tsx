@@ -22,13 +22,14 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { useMindMapStore, useThemeStore } from '../state/stores.js';
+import { useMindMapStore, useThemeStore, useUIStore } from '../state/stores.js';
 import { EditableNode } from './EditableNode.js';
 import { StickyNote } from './StickyNote.js';
 import { CommentNode } from './CommentNode.js';
 import { ContextMenu } from './ContextMenu.js';
 import { ShapePicker } from './ShapePicker.js';
 import { CanvasToolbar } from './CanvasToolbar.js';
+import { NodeFormattingToolbar } from './NodeFormattingToolbar.js';
 import type { ActiveTool } from './CanvasToolbar.js';
 import type { ContextMenuAction } from './ContextMenu.js';
 import type { MindMapNode, MindMapEdge, NodeShape } from '../types/mindmap.js';
@@ -146,6 +147,7 @@ function CanvasFlow(): JSX.Element {
   const futureLength = useMindMapStore((s) => s.future.length);
   const theme = useThemeStore((s) => s.theme);
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
+  const editingNodeId = useUIStore((s) => s.editingNodeId);
 
   const { screenToFlowPosition, getNodes } = useReactFlow();
   // Read the current viewport zoom so we can counter-scale UI chrome
@@ -546,6 +548,40 @@ function CanvasFlow(): JSX.Element {
     setEdges,
   ]);
 
+  // Aggregate the currently selected editable nodes so a single shared
+  // formatting toolbar can apply changes to all of them at once.
+  const formattingSelection = useMemo(() => {
+    const selected = nodes.filter((n) => n.selected && n.type === 'editableNode');
+    if (selected.length === 0) {
+      return {
+        nodeIds: [] as string[],
+        shape: undefined as NodeShape | undefined,
+        fontSize: undefined as number | undefined,
+        textAlign: undefined as 'left' | 'center' | 'right' | undefined,
+        allTextShape: false,
+      };
+    }
+    const shapes = new Set(selected.map((n) => (n.data.shape as NodeShape | undefined) ?? 'rectangle'));
+    const fontSizes = new Set(selected.map((n) => n.data.fontSize as number | undefined));
+    const aligns = new Set(
+      selected.map((n) => (n.data.textAlign as 'left' | 'center' | 'right' | undefined) ?? 'center'),
+    );
+    return {
+      nodeIds: selected.map((n) => n.id),
+      shape: shapes.size === 1 ? ([...shapes][0] as NodeShape) : undefined,
+      fontSize: fontSizes.size === 1 ? ([...fontSizes][0] as number | undefined) : undefined,
+      textAlign:
+        aligns.size === 1
+          ? ([...aligns][0] as 'left' | 'center' | 'right')
+          : undefined,
+      allTextShape: shapes.size === 1 && shapes.has('text'),
+    };
+  }, [nodes]);
+
+  const showFormattingToolbar =
+    formattingSelection.nodeIds.length > 0 &&
+    !(formattingSelection.nodeIds.length === 1 && editingNodeId === formattingSelection.nodeIds[0]);
+
   return (
     <div className="canvas-wrapper" ref={wrapperRef} onKeyDown={onKeyDown} tabIndex={0}>
       <div className="canvas-toolbar" data-tool={activeTool}>
@@ -604,6 +640,15 @@ function CanvasFlow(): JSX.Element {
             <Background />
             <Controls />
             <MiniMap />
+            {showFormattingToolbar && (
+              <NodeFormattingToolbar
+                nodeIds={formattingSelection.nodeIds}
+                currentShape={formattingSelection.shape}
+                currentFontSize={formattingSelection.fontSize}
+                currentTextAlign={formattingSelection.textAlign}
+                allTextShape={formattingSelection.allTextShape}
+              />
+            )}
           </ReactFlow>
         </div>
         <CanvasToolbar

@@ -234,7 +234,7 @@ describe('undo / redo', () => {
 describe('setNodeShape', () => {
   it('updates the shape of a node', () => {
     const id = useMindMapStore.getState().mindMap!.nodes[0].id;
-    useMindMapStore.getState().setNodeShape(id, 'circle');
+    useMindMapStore.getState().setNodeShape([id], 'circle');
     const node = useMindMapStore.getState().mindMap!.nodes.find((n) => n.id === id)!;
     expect(node.shape).toBe('circle');
   });
@@ -243,11 +243,11 @@ describe('setNodeShape', () => {
 describe('setNodeColor', () => {
   it('sets and clears node color', () => {
     const id = useMindMapStore.getState().mindMap!.nodes[0].id;
-    useMindMapStore.getState().setNodeColor(id, '#ff0000');
+    useMindMapStore.getState().setNodeColor([id], '#ff0000');
     expect(
       useMindMapStore.getState().mindMap!.nodes.find((n) => n.id === id)!.color,
     ).toBe('#ff0000');
-    useMindMapStore.getState().setNodeColor(id, undefined);
+    useMindMapStore.getState().setNodeColor([id], undefined);
     expect(
       useMindMapStore.getState().mindMap!.nodes.find((n) => n.id === id)!.color,
     ).toBeUndefined();
