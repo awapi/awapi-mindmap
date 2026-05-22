@@ -5,6 +5,22 @@ export type ActiveTool = 'select' | 'sticky' | 'comment';
 interface Props {
   activeTool: ActiveTool;
   onToolChange: (tool: ActiveTool) => void;
+  onAddNode: () => void;
+}
+
+function IconAdd(): JSX.Element {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <path d="M12 5 V19 M5 12 H19" />
+    </svg>
+  );
 }
 
 function IconSelect(): JSX.Element {
@@ -52,10 +68,30 @@ const TOOLS: { id: ActiveTool; label: string; title: string; Icon: () => JSX.Ele
   { id: 'comment', label: 'Comment', title: 'Comment (C)', Icon: IconComment },
 ];
 
-export function CanvasToolbar({ activeTool, onToolChange }: Props): JSX.Element {
+export function CanvasToolbar({ activeTool, onToolChange, onAddNode }: Props): JSX.Element {
   return (
     <div className="float-toolbar" role="toolbar" aria-label="Canvas tools">
-      {TOOLS.map(({ id, label, title, Icon }) => (
+      {TOOLS.filter((t) => t.id === 'select').map(({ id, label, title, Icon }) => (
+        <button
+          key={id}
+          className={`float-toolbar__btn${activeTool === id ? ' active' : ''}`}
+          title={title}
+          aria-pressed={activeTool === id}
+          onClick={() => onToolChange(id)}
+        >
+          <Icon />
+          <span>{label}</span>
+        </button>
+      ))}
+      <button
+        className="float-toolbar__btn"
+        title="Add Node"
+        onClick={onAddNode}
+      >
+        <IconAdd />
+        <span>Add</span>
+      </button>
+      {TOOLS.filter((t) => t.id !== 'select').map(({ id, label, title, Icon }) => (
         <button
           key={id}
           className={`float-toolbar__btn${activeTool === id ? ' active' : ''}`}

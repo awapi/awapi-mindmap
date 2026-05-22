@@ -11,6 +11,7 @@ export function EditableNode({ id, data, selected }: NodeProps): JSX.Element {
   const { setNodes } = useReactFlow();
   const shape: NodeShape = (data.shape as NodeShape | undefined) ?? 'rectangle';
   const textAlign = (data.textAlign as 'left' | 'center' | 'right' | undefined) ?? 'center';
+  const color = data.color as string | undefined;
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(String(data.label ?? ''));
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -129,7 +130,10 @@ export function EditableNode({ id, data, selected }: NodeProps): JSX.Element {
       <Handle id="left" type="source" position={Position.Left} />
       <div
         className={`editable-node shape-${shape}${shape === 'text' ? ` align-${textAlign}` : ''}${selected ? ' selected' : ''}`}
-        style={data.fontSize ? { fontSize: `${data.fontSize}px` } : undefined}
+        style={{
+          ...(data.fontSize ? { fontSize: `${data.fontSize}px` } : {}),
+          ...(color ? { background: color } : {}),
+        }}
         onDoubleClick={handleDoubleClick}
       >
         {editing ? (

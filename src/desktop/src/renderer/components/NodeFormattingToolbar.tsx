@@ -30,7 +30,7 @@ const COLOUR_OPTIONS: Array<{ color: string; title: string }> = [
   { color: '#1abc9c', title: 'Teal' },
 ];
 
-const FONT_MIN = 8;
+const FONT_MIN = 6;
 const FONT_MAX = 96;
 const FONT_DEFAULT = 10;
 const FONT_STEP = 2;
@@ -77,9 +77,7 @@ export function NodeFormattingToolbar({
   const applyColor = (color: string | undefined) => {
     setNodeColor(nodeId, color);
     setNodes((nds) =>
-      nds.map((n) =>
-        n.id === nodeId ? { ...n, style: color ? { background: color } : undefined } : n,
-      ),
+      nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, color } } : n)),
     );
   };
 
@@ -119,7 +117,7 @@ export function NodeFormattingToolbar({
   };
 
   return (
-    <NodeToolbar isVisible={selected} position={Position.Top} align="start" offset={12}>
+    <NodeToolbar isVisible={selected} position={Position.Top} align="start" offset={48}>
       <div
         className="node-toolbar nodrag nopan"
         onDoubleClick={(e) => e.stopPropagation()}

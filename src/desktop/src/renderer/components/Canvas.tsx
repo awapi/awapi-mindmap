@@ -81,7 +81,6 @@ function toFlowNode(n: MindMapNode): Node {
     type: nodeType,
     position: n.position,
     data: { label: n.label, shape, fontSize: n.fontSize, textAlign: n.textAlign, color: n.color },
-    style: n.color && nodeType === 'editableNode' ? { background: n.color } : undefined,
     ...(width != null ? { width } : {}),
     ...(height != null ? { height } : {}),
   };
@@ -552,19 +551,6 @@ function CanvasFlow(): JSX.Element {
       <div className="canvas-toolbar" data-tool={activeTool}>
         <button
           className="toolbar-btn"
-          title="Add Node"
-          onClick={() => {
-            const center = screenToFlowPosition({
-              x: window.innerWidth / 2,
-              y: window.innerHeight / 2,
-            });
-            addNewNode(center);
-          }}
-        >
-          + Add Node
-        </button>
-        <button
-          className="toolbar-btn"
           title="Undo (⌘Z)"
           disabled={historyLength === 0}
           onClick={undo}
@@ -620,7 +606,17 @@ function CanvasFlow(): JSX.Element {
             <MiniMap />
           </ReactFlow>
         </div>
-        <CanvasToolbar activeTool={activeTool} onToolChange={setActiveTool} />
+        <CanvasToolbar
+          activeTool={activeTool}
+          onToolChange={setActiveTool}
+          onAddNode={() => {
+            const center = screenToFlowPosition({
+              x: window.innerWidth / 2,
+              y: window.innerHeight / 2,
+            });
+            addNewNode(center);
+          }}
+        />
       </div>
 
       {contextMenu && (

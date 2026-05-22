@@ -966,3 +966,39 @@ body,
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* =========================================================================
+   React Flow Controls (zoom in/out, fit, lock buttons)
+   ========================================================================= */
+
+.react-flow__controls {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+}
+
+.react-flow__controls-button {
+  background: var(--surface);
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  width: 26px;
+  height: 26px;
+  transition: background 0.12s;
+}
+
+.react-flow__controls-button:last-child {
+  border-bottom: none;
+}
+
+.react-flow__controls-button:hover {
+  background: var(--node-bg);
+}
+
+.react-flow__controls-button svg {
+  fill: currentColor;
+  max-width: 14px;
+  max-height: 14px;
+}
