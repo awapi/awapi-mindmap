@@ -13,7 +13,7 @@ export function EditableNode({ id, data, selected }: NodeProps): JSX.Element {
   const textAlign = (data.textAlign as 'left' | 'center' | 'right' | undefined) ?? 'center';
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(String(data.label ?? ''));
-  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const isText = shape === 'text';
 
   // Keep draft in sync when label changes externally (e.g. undo/redo)
@@ -29,6 +29,14 @@ export function EditableNode({ id, data, selected }: NodeProps): JSX.Element {
       inputRef.current?.select();
     }
   }, [editing]);
+
+  // Auto-grow textarea height as user types
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el || !editing) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [draft, editing]);
 
   const commitEdit = useCallback(() => {
     const trimmed = isText ? draft.replace(/\s+$/, '') : draft.trim();
@@ -53,7 +61,7 @@ export function EditableNode({ id, data, selected }: NodeProps): JSX.Element {
   );
 
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === 'Enter') {
         // For the text shape, Shift+Enter inserts a newline (textarea default);
         // a bare Enter commits.
@@ -111,36 +119,29 @@ export function EditableNode({ id, data, selected }: NodeProps): JSX.Element {
           resizeNode(id, params.width, params.height, { x: params.x, y: params.y });
         }}
       />
+      <Handle id="top-t" type="target" position={Position.Top} />
+      <Handle id="right-t" type="target" position={Position.Right} />
+      <Handle id="bottom-t" type="target" position={Position.Bottom} />
+      <Handle id="left-t" type="target" position={Position.Left} />
+      <Handle id="top" type="source" position={Position.Top} />
+      <Handle id="right" type="source" position={Position.Right} />
+      <Handle id="bottom" type="source" position={Position.Bottom} />
+      <Handle id="left" type="source" position={Position.Left} />
       <div
         className={`editable-node shape-${shape}${shape === 'text' ? ` align-${textAlign}` : ''}${selected ? ' selected' : ''}`}
         style={data.fontSize ? { fontSize: `${data.fontSize}px` } : undefined}
         onDoubleClick={handleDoubleClick}
       >
-        <Handle id="top" type="source" position={Position.Top} />
-        <Handle id="right" type="source" position={Position.Right} />
-        <Handle id="bottom" type="source" position={Position.Bottom} />
-        <Handle id="left" type="source" position={Position.Left} />
         {editing ? (
-          isText ? (
-            <textarea
-              ref={inputRef as React.RefObject<HTMLTextAreaElement>}
-              className="editable-node__input editable-node__input--multiline"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onBlur={commitEdit}
-              onKeyDown={handleKeyDown}
-              rows={Math.max(1, draft.split('\n').length)}
-            />
-          ) : (
-            <input
-              ref={inputRef as React.RefObject<HTMLInputElement>}
-              className="editable-node__input"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onBlur={commitEdit}
-              onKeyDown={handleKeyDown}
-            />
-          )
+          <textarea
+            ref={inputRef}
+            className={`editable-node__input editable-node__input--multiline${isText ? '' : ' editable-node__input--centered'}`}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commitEdit}
+            onKeyDown={handleKeyDown}
+            rows={Math.max(1, draft.split('\n').length)}
+          />
         ) : (
           <span className="editable-node__label">{String(data.label ?? '')}</span>
         )}

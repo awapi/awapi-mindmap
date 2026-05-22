@@ -24,31 +24,64 @@ import '@xyflow/react/dist/style.css';
 
 import { useMindMapStore, useThemeStore } from '../state/stores.js';
 import { EditableNode } from './EditableNode.js';
+import { StickyNote } from './StickyNote.js';
+import { CommentNode } from './CommentNode.js';
 import { ContextMenu } from './ContextMenu.js';
 import { ShapePicker } from './ShapePicker.js';
+import { CanvasToolbar } from './CanvasToolbar.js';
+import type { ActiveTool } from './CanvasToolbar.js';
 import type { ContextMenuAction } from './ContextMenu.js';
 import type { MindMapNode, MindMapEdge, NodeShape } from '../types/mindmap.js';
 import { nanoid } from '../utils/nanoid.js';
 
 // Defined outside component to prevent nodeTypes object from being re-created on every render
-const NODE_TYPES = { editableNode: EditableNode };
+const NODE_TYPES = {
+  editableNode: EditableNode,
+  stickyNote: StickyNote,
+  commentNode: CommentNode,
+};
 
 function toFlowNode(n: MindMapNode): Node {
   const shape = n.shape ?? 'rectangle';
-  // Restore explicit user-set dimensions; give circles/ellipses a sensible default so
-  // NodeResizer has something to work with before the user resizes.
+
+  // Map special shapes to dedicated React Flow node types
+  const nodeType =
+    shape === 'sticky' ? 'stickyNote' : shape === 'comment' ? 'commentNode' : 'editableNode';
+
+  // Restore explicit user-set dimensions; provide sensible defaults for each shape
   const width =
     n.width ??
-    (shape === 'circle' ? 80 : shape === 'ellipse' ? 100 : shape === 'diamond' ? 120 : undefined);
+    (shape === 'circle'
+      ? 80
+      : shape === 'ellipse'
+        ? 100
+        : shape === 'diamond'
+          ? 120
+          : shape === 'sticky'
+            ? 160
+            : shape === 'comment'
+              ? 160
+              : undefined);
   const height =
     n.height ??
-    (shape === 'circle' ? 80 : shape === 'ellipse' ? 60 : shape === 'diamond' ? 90 : undefined);
+    (shape === 'circle'
+      ? 80
+      : shape === 'ellipse'
+        ? 60
+        : shape === 'diamond'
+          ? 90
+          : shape === 'sticky'
+            ? 120
+            : shape === 'comment'
+              ? 60
+              : undefined);
+
   return {
     id: n.id,
-    type: 'editableNode',
+    type: nodeType,
     position: n.position,
-    data: { label: n.label, shape, fontSize: n.fontSize, textAlign: n.textAlign },
-    style: n.color ? { background: n.color } : undefined,
+    data: { label: n.label, shape, fontSize: n.fontSize, textAlign: n.textAlign, color: n.color },
+    style: n.color && nodeType === 'editableNode' ? { background: n.color } : undefined,
     ...(width != null ? { width } : {}),
     ...(height != null ? { height } : {}),
   };
@@ -83,6 +116,20 @@ interface ShapePickerState {
   sourceHandleId: string | null;
 }
 
+/** Returns the target-handle ID on `tgtNode` that faces toward `srcNode`. */
+function facingTargetHandle(srcNode: Node, tgtNode: Node): string {
+  const sw = (srcNode.measured?.width ?? srcNode.width ?? 80) as number;
+  const sh = (srcNode.measured?.height ?? srcNode.height ?? 40) as number;
+  const tw = (tgtNode.measured?.width ?? tgtNode.width ?? 80) as number;
+  const th = (tgtNode.measured?.height ?? tgtNode.height ?? 40) as number;
+  const dx = (srcNode.position.x + sw / 2) - (tgtNode.position.x + tw / 2);
+  const dy = (srcNode.position.y + sh / 2) - (tgtNode.position.y + th / 2);
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    return dx > 0 ? 'right-t' : 'left-t';
+  }
+  return dy > 0 ? 'bottom-t' : 'top-t';
+}
+
 // CanvasFlow is a child of ReactFlowProvider so it can use useReactFlow()
 function CanvasFlow(): JSX.Element {
   const mindMap = useMindMapStore((s) => s.mindMap);
@@ -101,7 +148,7 @@ function CanvasFlow(): JSX.Element {
   const theme = useThemeStore((s) => s.theme);
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
 
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, getNodes } = useReactFlow();
   // Read the current viewport zoom so we can counter-scale UI chrome
   // (connection handles, selection outlines, resize controls) and keep
   // them at a constant on-screen size regardless of zoom level.
@@ -112,6 +159,7 @@ function CanvasFlow(): JSX.Element {
   const [edges, setEdges] = useEdgesState<Edge>(mindMap?.edges.map(toFlowEdge) ?? []);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [shapePicker, setShapePicker] = useState<ShapePickerState | null>(null);
+  const [activeTool, setActiveTool] = useState<ActiveTool>('select');
   const pendingSource = useRef<{ nodeId: string; handleId: string | null } | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -162,17 +210,22 @@ function CanvasFlow(): JSX.Element {
     (connection: Connection) => {
       pendingSource.current = null; // successful connection — no shape picker needed
       if (!connection.source || !connection.target) return;
+      const allNodes = getNodes();
+      const srcNode = allNodes.find((n) => n.id === connection.source);
+      const tgtNode = allNodes.find((n) => n.id === connection.target);
+      const targetHandle =
+        srcNode && tgtNode ? facingTargetHandle(srcNode, tgtNode) : (connection.targetHandle ?? undefined);
       const edge: MindMapEdge = {
         id: nanoid(),
         source: connection.source,
         target: connection.target,
         sourceHandle: connection.sourceHandle ?? undefined,
-        targetHandle: connection.targetHandle ?? undefined,
+        targetHandle,
       };
       addEdgeAction(edge);
       setEdges((eds) => [...eds, toFlowEdge(edge)]);
     },
-    [addEdgeAction, setEdges],
+    [addEdgeAction, setEdges, getNodes],
   );
 
   const onReconnect = useCallback(
@@ -247,12 +300,25 @@ function CanvasFlow(): JSX.Element {
         position: flowPosition,
         shape,
       };
+      let targetHandle: string | undefined;
+      if (parentId) {
+        const parentNode = getNodes().find((n) => n.id === parentId);
+        if (parentNode) {
+          // Approximate the new node as a stand-in Node for direction computation
+          const approxNewNode: Node = {
+            ...toFlowNode(newNode),
+            measured: { width: 80, height: 40 },
+          };
+          targetHandle = facingTargetHandle(parentNode, approxNewNode);
+        }
+      }
       const parentEdge: MindMapEdge | undefined = parentId
         ? {
             id: nanoid(),
             source: parentId,
             target: newNode.id,
             sourceHandle: parentHandleId ?? undefined,
+            targetHandle,
           }
         : undefined;
 
@@ -262,7 +328,7 @@ function CanvasFlow(): JSX.Element {
         setEdges((eds) => [...eds, toFlowEdge(parentEdge)]);
       }
     },
-    [addNodeAction, setNodes, setEdges],
+    [addNodeAction, setNodes, setEdges, getNodes],
   );
 
   const onShapeSelect = useCallback(
@@ -278,10 +344,33 @@ function CanvasFlow(): JSX.Element {
     [shapePicker, addNewNode],
   );
 
+  // Pane click: place sticky / comment when the matching tool is active
+  const onPaneClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (activeTool === 'select') return;
+
+      const flowPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+      const shape: NodeShape = activeTool === 'sticky' ? 'sticky' : 'comment';
+      const newNode: MindMapNode = {
+        id: nanoid(),
+        label: shape === 'sticky' ? 'Note…' : 'Comment…',
+        position: flowPos,
+        shape,
+      };
+      addNodeAction(newNode);
+      setNodes((nds) => [...nds, toFlowNode(newNode)]);
+      setActiveTool('select');
+    },
+    [activeTool, screenToFlowPosition, addNodeAction, setNodes],
+  );
+
   // --- Keyboard handler: Delete/Backspace for selection; Cmd+Z / Cmd+Shift+Z for undo/redo ---
 
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
       const isMeta = e.metaKey || e.ctrlKey;
 
       if (isMeta && e.key === 'z' && !e.shiftKey) {
@@ -293,6 +382,13 @@ function CanvasFlow(): JSX.Element {
         e.preventDefault();
         redo();
         return;
+      }
+
+      // Tool shortcuts (skip when any meta is held)
+      if (!isMeta) {
+        if (e.key === 'v' || e.key === 'V') { setActiveTool('select'); return; }
+        if (e.key === 's' || e.key === 'S') { setActiveTool('sticky'); return; }
+        if (e.key === 'c' || e.key === 'C') { setActiveTool('comment'); return; }
       }
 
       if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -453,7 +549,7 @@ function CanvasFlow(): JSX.Element {
 
   return (
     <div className="canvas-wrapper" ref={wrapperRef} onKeyDown={onKeyDown} tabIndex={0}>
-      <div className="canvas-toolbar">
+      <div className="canvas-toolbar" data-tool={activeTool}>
         <button
           className="toolbar-btn"
           title="Add Node"
@@ -489,33 +585,42 @@ function CanvasFlow(): JSX.Element {
         </button>
       </div>
 
-      <div
-        className="canvas-flow"
-        style={{ ['--zoom-inv' as string]: zoomInv } as React.CSSProperties}
-      >
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          nodeTypes={NODE_TYPES}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onConnectStart={onConnectStart}
-          onConnectEnd={onConnectEnd}
-          onReconnect={onReconnect}
-          edgesReconnectable
-          onNodeDragStop={onNodeDragStop}
-          onPaneContextMenu={onPaneContextMenu}
-          onNodeContextMenu={onNodeContextMenu}
-          onEdgeContextMenu={onEdgeContextMenu}
-          connectionMode={ConnectionMode.Loose}
-          deleteKeyCode={null}
-          fitView
+      <div className="canvas-area">
+        <div
+          className={`canvas-flow tool-${activeTool}`}
+          style={{ ['--zoom-inv' as string]: zoomInv } as React.CSSProperties}
+          onMouseDown={(e) => { if (e.button === 2) e.currentTarget.classList.add('is-panning'); }}
+          onMouseUp={(e) => { if (e.button === 2) e.currentTarget.classList.remove('is-panning'); }}
+          onMouseLeave={(e) => e.currentTarget.classList.remove('is-panning')}
         >
-          <Background />
-          <Controls />
-          <MiniMap />
-        </ReactFlow>
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={NODE_TYPES}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onConnectStart={onConnectStart}
+            onConnectEnd={onConnectEnd}
+            onReconnect={onReconnect}
+            edgesReconnectable
+            onNodeDragStop={onNodeDragStop}
+            onPaneClick={onPaneClick}
+            onPaneContextMenu={onPaneContextMenu}
+            onNodeContextMenu={onNodeContextMenu}
+            onEdgeContextMenu={onEdgeContextMenu}
+            connectionMode={ConnectionMode.Loose}
+            deleteKeyCode={null}
+            panOnDrag={[2]}
+            selectionOnDrag
+            fitView
+          >
+            <Background />
+            <Controls />
+            <MiniMap />
+          </ReactFlow>
+        </div>
+        <CanvasToolbar activeTool={activeTool} onToolChange={setActiveTool} />
       </div>
 
       {contextMenu && (
