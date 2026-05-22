@@ -94,4 +94,4 @@ release version mode="":
 # For a full cross-platform release, push the tag and let CI build all platforms
 # (i.e. use `just release <version>` without `publish`).
 _publish-packages: build
-    ./src/desktop/node_modules/.bin/electron-builder --config {{justfile_directory()}}/electron-builder.yml --projectDir src/desktop {{ if os() == "macos" { "-mwl" } else if os() == "windows" { "-wl" } else { "-l" } }} --publish always
+    ./src/desktop/node_modules/.bin/electron-builder --config {{justfile_directory()}}/electron-builder.yml --projectDir src/desktop {{ if os() == "macos" { "-m" } else if os() == "windows" { "-w" } else { "-l" } }} --publish always
