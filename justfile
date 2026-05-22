@@ -81,7 +81,8 @@ package-all: build
 # Requires GH_TOKEN in .env when using the publish mode.
 release version mode="":
     @echo "Releasing v{{version}}"
-    pnpm -r exec npm version {{version}} --no-git-tag-version
+    npm version {{version}} --no-git-tag-version --allow-same-version
+    pnpm -r exec npm version {{version}} --no-git-tag-version --allow-same-version
     git add -A
     git commit -m "chore: release v{{version}}"
     git tag -a "v{{version}}" -m "v{{version}}"
