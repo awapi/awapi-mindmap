@@ -17,6 +17,14 @@ files:
 # are provisioned. See docs/release-process.md.
 forceCodeSigning: false
 
+fileAssociations:
+  - ext: awmm
+    name: Awapi Mindmap
+    description: Awapi Mindmap file
+    role: Editor
+    rank: Owner
+    mimeType: application/x-awapi-mindmap
+
 mac:
   category: public.app-category.productivity
   icon: ../../resources/icon.icns

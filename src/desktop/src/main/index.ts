@@ -59,6 +59,61 @@ let hasMap = false;
 /** When true, we are mid-shutdown after a save-and-close confirmation. */
 let allowNextClose = false;
 
+/** Path requested via OS file-association (open-file / argv), buffered
+ *  until the renderer is ready to receive it. */
+let pendingOpenPath: string | undefined;
+/** Set once the renderer has loaded and can accept open-path messages. */
+let rendererReady = false;
+
+/** Extract an `.awmm` path from argv (Windows/Linux file-association). */
+function findAwmmInArgv(argv: readonly string[]): string | undefined {
+  // Skip the first arg (executable). In packaged builds extra Chromium
+  // switches may be present; pick the first existing-looking .awmm.
+  return argv.slice(1).find((a) => !a.startsWith('-') && a.toLowerCase().endsWith('.awmm'));
+}
+
+function dispatchOpenPath(path: string): void {
+  const win = BrowserWindow.getAllWindows()[0];
+  if (!win) return;
+  if (win.isMinimized()) win.restore();
+  win.focus();
+  win.webContents.send(IpcChannel.MenuOpenRecent, path);
+}
+
+function queueOrDispatchOpenPath(path: string): void {
+  if (rendererReady) {
+    dispatchOpenPath(path);
+  } else {
+    pendingOpenPath = path;
+  }
+}
+
+// --- OS-level file-association wiring --------------------------------------
+
+// Ensure a single instance on Windows/Linux so a second double-click
+// reuses the existing window instead of launching a new app.
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (_event, argv) => {
+    const path = findAwmmInArgv(argv);
+    if (path) queueOrDispatchOpenPath(path);
+    const win = BrowserWindow.getAllWindows()[0];
+    if (win) {
+      if (win.isMinimized()) win.restore();
+      win.focus();
+    }
+  });
+}
+
+// macOS: Finder "Open With" routes through `open-file`. This can fire
+// before `whenReady`, so we buffer the path.
+app.on('open-file', (event, path) => {
+  event.preventDefault();
+  queueOrDispatchOpenPath(path);
+});
+
 function createWindow(): BrowserWindow {
   // Window icon: used on Windows/Linux title bars and taskbars.
   // macOS uses the icon embedded in the .app bundle (set by electron-builder),
@@ -85,6 +140,20 @@ function createWindow(): BrowserWindow {
   } else {
     win.loadFile(join(__dirname, '../renderer/index.html'));
   }
+
+  // Once the renderer has finished loading, flush any pending open-path
+  // request that came from the OS (file-association double-click).
+  win.webContents.once('did-finish-load', () => {
+    rendererReady = true;
+    if (pendingOpenPath) {
+      const p = pendingOpenPath;
+      pendingOpenPath = undefined;
+      dispatchOpenPath(p);
+    }
+  });
+  win.on('closed', () => {
+    rendererReady = false;
+  });
 
   // Intercept window close to prompt on unsaved changes.
   win.on('close', (event) => {
@@ -327,6 +396,14 @@ app.whenReady().then(async () => {
   registerIpcHandlers();
   await buildMenu();
   createWindow();
+
+  // If the app was launched by double-clicking a .awmm file in Explorer
+  // (Windows/Linux), the path is in process.argv. Buffer it; the window's
+  // `did-finish-load` will flush it once the renderer is ready.
+  if (process.platform !== 'darwin') {
+    const fromArgv = findAwmmInArgv(process.argv);
+    if (fromArgv) pendingOpenPath = fromArgv;
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
