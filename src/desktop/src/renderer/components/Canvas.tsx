@@ -7,6 +7,7 @@ import {
   Controls,
   MiniMap,
   ConnectionMode,
+  MarkerType,
   useNodesState,
   useEdgesState,
   useReactFlow,
@@ -17,6 +18,7 @@ import {
   type Connection,
   type Node,
   type Edge,
+  type EdgeMarkerType,
   type NodeChange,
   type EdgeChange,
 } from '@xyflow/react';
@@ -30,9 +32,10 @@ import { ContextMenu } from './ContextMenu.js';
 import { ShapePicker } from './ShapePicker.js';
 import { CanvasToolbar } from './CanvasToolbar.js';
 import { NodeFormattingToolbar } from './NodeFormattingToolbar.js';
+import { EdgeFormattingToolbar } from './EdgeFormattingToolbar.js';
 import type { ActiveTool } from './CanvasToolbar.js';
 import type { ContextMenuAction } from './ContextMenu.js';
-import type { MindMapNode, MindMapEdge, NodeShape } from '../types/mindmap.js';
+import type { MindMapNode, MindMapEdge, NodeShape, EdgeMarker } from '../types/mindmap.js';
 import { nanoid } from '../utils/nanoid.js';
 
 // Defined outside component to prevent nodeTypes object from being re-created on every render
@@ -87,7 +90,17 @@ function toFlowNode(n: MindMapNode): Node {
   };
 }
 
+function markerToRf(marker: EdgeMarker | undefined): EdgeMarkerType | undefined {
+  if (!marker || marker === 'none') return undefined;
+  return { type: marker === 'arrow' ? MarkerType.Arrow : MarkerType.ArrowClosed };
+}
+
 function toFlowEdge(e: MindMapEdge): Edge {
+  const markerEnd = markerToRf(e.markerEnd ?? 'arrowclosed');
+  const markerStart = markerToRf(e.markerStart);
+  const style: React.CSSProperties = {};
+  if (e.strokeColor) style.stroke = e.strokeColor;
+  if (e.strokeWidth != null) style.strokeWidth = e.strokeWidth;
   return {
     id: e.id,
     source: e.source,
@@ -95,6 +108,9 @@ function toFlowEdge(e: MindMapEdge): Edge {
     sourceHandle: e.sourceHandle,
     targetHandle: e.targetHandle,
     type: e.edgeStyle ?? 'default',
+    ...(markerEnd ? { markerEnd } : {}),
+    ...(markerStart ? { markerStart } : {}),
+    ...(Object.keys(style).length > 0 ? { style } : {}),
   };
 }
 
@@ -135,11 +151,14 @@ function CanvasFlow(): JSX.Element {
   const mindMap = useMindMapStore((s) => s.mindMap);
   const syncKey = useMindMapStore((s) => s.syncKey);
   const addNodeAction = useMindMapStore((s) => s.addNode);
+  const addNodesAction = useMindMapStore((s) => s.addNodes);
   const deleteNodesAction = useMindMapStore((s) => s.deleteNodes);
   const deleteEdgesAction = useMindMapStore((s) => s.deleteEdges);
   const addEdgeAction = useMindMapStore((s) => s.addEdge);
   const reconnectEdgeAction = useMindMapStore((s) => s.reconnectEdge);
   const syncPositions = useMindMapStore((s) => s.syncPositions);
+  const setNodePositions = useMindMapStore((s) => s.setNodePositions);
+  const setNodeSizes = useMindMapStore((s) => s.setNodeSizes);
   const setEdgeStyle = useMindMapStore((s) => s.setEdgeStyle);
   const undo = useMindMapStore((s) => s.undo);
   const redo = useMindMapStore((s) => s.redo);
@@ -163,6 +182,10 @@ function CanvasFlow(): JSX.Element {
   const [activeTool, setActiveTool] = useState<ActiveTool>('select');
   const pendingSource = useRef<{ nodeId: string; handleId: string | null } | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  // In-memory clipboard for copy/cut/paste of nodes (+ edges internal to the selection).
+  const clipboardRef = useRef<{ nodes: MindMapNode[]; edges: MindMapEdge[] } | null>(null);
+  // Track how many paste presses since the last copy/cut so we can stagger offsets.
+  const pasteCountRef = useRef(0);
 
   // Re-sync local React Flow state whenever undo/redo/open/new fires (syncKey changes)
   useEffect(() => {
@@ -385,6 +408,65 @@ function CanvasFlow(): JSX.Element {
         return;
       }
 
+      // Copy / Cut / Paste --------------------------------------------------
+      if (isMeta && (e.key === 'c' || e.key === 'C' || e.key === 'x' || e.key === 'X')) {
+        const selected = nodes.filter((n) => n.selected);
+        if (selected.length === 0) return;
+        e.preventDefault();
+        const selectedIds = new Set(selected.map((n) => n.id));
+        const map = useMindMapStore.getState().mindMap;
+        if (!map) return;
+        const copiedNodes = map.nodes.filter((n) => selectedIds.has(n.id));
+        const copiedEdges = map.edges.filter(
+          (ed) => selectedIds.has(ed.source) && selectedIds.has(ed.target),
+        );
+        clipboardRef.current = {
+          nodes: copiedNodes.map((n) => ({ ...n, position: { ...n.position } })),
+          edges: copiedEdges.map((ed) => ({ ...ed })),
+        };
+        pasteCountRef.current = 0;
+        if (e.key === 'x' || e.key === 'X') {
+          const ids = [...selectedIds];
+          deleteNodesAction(ids);
+          setNodes((nds) => nds.filter((n) => !selectedIds.has(n.id)));
+          setEdges((eds) => eds.filter((ed) => !selectedIds.has(ed.source) && !selectedIds.has(ed.target)));
+        }
+        return;
+      }
+
+      if (isMeta && (e.key === 'v' || e.key === 'V')) {
+        const clip = clipboardRef.current;
+        if (!clip || clip.nodes.length === 0) return;
+        e.preventDefault();
+        pasteCountRef.current += 1;
+        const OFFSET = 24;
+        const dx = OFFSET * pasteCountRef.current;
+        const dy = OFFSET * pasteCountRef.current;
+        const idMap = new Map<string, string>();
+        const newNodes: MindMapNode[] = clip.nodes.map((n) => {
+          const newId = nanoid();
+          idMap.set(n.id, newId);
+          return {
+            ...n,
+            id: newId,
+            position: { x: n.position.x + dx, y: n.position.y + dy },
+          };
+        });
+        const newEdges: MindMapEdge[] = clip.edges.map((ed) => ({
+          ...ed,
+          id: nanoid(),
+          source: idMap.get(ed.source) ?? ed.source,
+          target: idMap.get(ed.target) ?? ed.target,
+        }));
+        addNodesAction(newNodes, newEdges);
+        setNodes((nds) => [
+          ...nds.map((n) => (n.selected ? { ...n, selected: false } : n)),
+          ...newNodes.map((n) => ({ ...toFlowNode(n), selected: true })),
+        ]);
+        setEdges((eds) => [...eds, ...newEdges.map(toFlowEdge)]);
+        return;
+      }
+
       // Tool shortcuts (skip when any meta is held)
       if (!isMeta) {
         if (e.key === 'v' || e.key === 'V') { setActiveTool('select'); return; }
@@ -410,7 +492,7 @@ function CanvasFlow(): JSX.Element {
         }
       }
     },
-    [nodes, edges, deleteNodesAction, deleteEdgesAction, setNodes, setEdges, undo, redo],
+    [nodes, edges, deleteNodesAction, deleteEdgesAction, addNodesAction, setNodes, setEdges, undo, redo],
   );
 
   // --- Context menu ---
@@ -441,6 +523,42 @@ function CanvasFlow(): JSX.Element {
     [screenToFlowPosition],
   );
 
+  // Right-click on the multi-selection overlay (when 2+ nodes are box-selected).
+  // React Flow routes this through onSelectionContextMenu instead of onNodeContextMenu.
+  const onSelectionContextMenu = useCallback(
+    (e: React.MouseEvent, selectedNodes: Node[]) => {
+      e.preventDefault();
+      const flowPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+
+      // Hit-test the cursor against the actual node DOM so we can use the
+      // node under the pointer as the "reference" for ops like Same Size.
+      // The selection overlay sits on top of nodes, so elementFromPoint
+      // returns it — use elementsFromPoint and look beneath.
+      const selectedIds = new Set(selectedNodes.map((n) => n.id));
+      const stack = document.elementsFromPoint(e.clientX, e.clientY);
+      let hoveredId: string | undefined;
+      for (const el of stack) {
+        const nodeEl = (el as HTMLElement).closest?.('.react-flow__node') as HTMLElement | null;
+        const id = nodeEl?.dataset.id;
+        if (id && selectedIds.has(id)) {
+          hoveredId = id;
+          break;
+        }
+      }
+
+      const anchorId = hoveredId ?? selectedNodes[0]?.id;
+      if (!anchorId) return;
+      setContextMenu({
+        x: e.clientX,
+        y: e.clientY,
+        nodeId: anchorId,
+        flowX: flowPos.x,
+        flowY: flowPos.y,
+      });
+    },
+    [screenToFlowPosition],
+  );
+
   const onEdgeContextMenu = useCallback(
     (e: React.MouseEvent, edge: Edge) => {
       e.preventDefault();
@@ -463,6 +581,85 @@ function CanvasFlow(): JSX.Element {
 
     if (contextMenu.nodeId) {
       const nodeId = contextMenu.nodeId;
+      const selectedNodes = nodes.filter((n) => n.selected);
+      const selectedIds = selectedNodes.map((n) => n.id);
+
+      // Multi-node menu: right-clicked on a node that's part of a
+      // multi-selection. Offer alignment / sizing / bulk delete.
+      if (selectedIds.includes(nodeId) && selectedIds.length > 1) {
+        const dim = (n: Node) => ({
+          w: (n.width ?? n.measured?.width ?? 80) as number,
+          h: (n.height ?? n.measured?.height ?? 40) as number,
+        });
+
+        const alignTo = (edge: 'left' | 'right' | 'top' | 'bottom') => {
+          const bounds = selectedNodes.map((n) => {
+            const { w, h } = dim(n);
+            return { id: n.id, x: n.position.x, y: n.position.y, w, h };
+          });
+          let updates: Array<{ id: string; position: { x: number; y: number } }>;
+          if (edge === 'left') {
+            const minX = Math.min(...bounds.map((b) => b.x));
+            updates = bounds.map((b) => ({ id: b.id, position: { x: minX, y: b.y } }));
+          } else if (edge === 'right') {
+            const maxR = Math.max(...bounds.map((b) => b.x + b.w));
+            updates = bounds.map((b) => ({ id: b.id, position: { x: maxR - b.w, y: b.y } }));
+          } else if (edge === 'top') {
+            const minY = Math.min(...bounds.map((b) => b.y));
+            updates = bounds.map((b) => ({ id: b.id, position: { x: b.x, y: minY } }));
+          } else {
+            const maxB = Math.max(...bounds.map((b) => b.y + b.h));
+            updates = bounds.map((b) => ({ id: b.id, position: { x: b.x, y: maxB - b.h } }));
+          }
+          setNodePositions(updates);
+          const posMap = new Map(updates.map((u) => [u.id, u.position]));
+          setNodes((nds) =>
+            nds.map((n) => {
+              const p = posMap.get(n.id);
+              return p ? { ...n, position: p } : n;
+            }),
+          );
+        };
+
+        const sameSize = () => {
+          // If the right-click landed on one of the selected nodes, use its
+          // dimensions as the reference. Otherwise fall back to the largest
+          // node in the selection.
+          const refNode = selectedNodes.find((n) => n.id === nodeId);
+          let w: number;
+          let h: number;
+          if (refNode) {
+            ({ w, h } = dim(refNode));
+          } else {
+            const dims = selectedNodes.map(dim);
+            w = Math.max(...dims.map((d) => d.w));
+            h = Math.max(...dims.map((d) => d.h));
+          }
+          const updates = selectedNodes.map((n) => ({ id: n.id, width: w, height: h }));
+          setNodeSizes(updates);
+          const idSet = new Set(selectedIds);
+          setNodes((nds) =>
+            nds.map((n) => (idSet.has(n.id) ? { ...n, width: w, height: h } : n)),
+          );
+        };
+
+        const deleteSelected = () => {
+          const idSet = new Set(selectedIds);
+          deleteNodesAction(selectedIds);
+          setNodes((nds) => nds.filter((n) => !idSet.has(n.id)));
+          setEdges((eds) => eds.filter((e) => !idSet.has(e.source) && !idSet.has(e.target)));
+        };
+
+        return [
+          { label: 'Align Left', onClick: () => alignTo('left') },
+          { label: 'Align Right', onClick: () => alignTo('right') },
+          { label: 'Align Top', onClick: () => alignTo('top') },
+          { label: 'Align Bottom', onClick: () => alignTo('bottom') },
+          { label: 'Same Size', dividerBefore: true, onClick: sameSize },
+          { label: `Delete ${selectedIds.length} Nodes`, dividerBefore: true, onClick: deleteSelected },
+        ];
+      }
+
       const nodePos = nodes.find((n) => n.id === nodeId)?.position ?? { x: 0, y: 0 };
       return [
         {
@@ -544,6 +741,8 @@ function CanvasFlow(): JSX.Element {
     deleteNodesAction,
     deleteEdgesAction,
     setEdgeStyle,
+    setNodePositions,
+    setNodeSizes,
     setNodes,
     setEdges,
   ]);
@@ -581,6 +780,41 @@ function CanvasFlow(): JSX.Element {
   const showFormattingToolbar =
     formattingSelection.nodeIds.length > 0 &&
     !(formattingSelection.nodeIds.length === 1 && editingNodeId === formattingSelection.nodeIds[0]);
+
+  // Aggregate currently selected edges for the edge formatting toolbar.
+  const edgeFormattingSelection = useMemo(() => {
+    const selected = edges.filter((e) => e.selected);
+    if (selected.length === 0) {
+      return {
+        edgeIds: [] as string[],
+        style: undefined as 'default' | 'straight' | 'step' | 'smoothstep' | undefined,
+        color: undefined as string | undefined,
+        width: undefined as number | undefined,
+        markerStart: undefined as EdgeMarker | undefined,
+        markerEnd: undefined as EdgeMarker | undefined,
+      };
+    }
+    // Read the persisted model to access fields React Flow strips into its own shape.
+    const map = useMindMapStore.getState().mindMap;
+    const selectedIds = new Set(selected.map((e) => e.id));
+    const persisted = map?.edges.filter((e) => selectedIds.has(e.id)) ?? [];
+    const styles = new Set(persisted.map((e) => e.edgeStyle ?? 'default'));
+    const colors = new Set(persisted.map((e) => e.strokeColor));
+    const widths = new Set(persisted.map((e) => e.strokeWidth));
+    const ms = new Set(persisted.map((e) => e.markerStart ?? 'none'));
+    const me = new Set(persisted.map((e) => e.markerEnd ?? 'arrowclosed'));
+    return {
+      edgeIds: persisted.map((e) => e.id),
+      style:
+        styles.size === 1
+          ? ([...styles][0] as 'default' | 'straight' | 'step' | 'smoothstep')
+          : undefined,
+      color: colors.size === 1 ? ([...colors][0] as string | undefined) : undefined,
+      width: widths.size === 1 ? ([...widths][0] as number | undefined) : undefined,
+      markerStart: ms.size === 1 ? ([...ms][0] as EdgeMarker) : undefined,
+      markerEnd: me.size === 1 ? ([...me][0] as EdgeMarker) : undefined,
+    };
+  }, [edges]);
 
   return (
     <div className="canvas-wrapper" ref={wrapperRef} onKeyDown={onKeyDown} tabIndex={0}>
@@ -630,6 +864,7 @@ function CanvasFlow(): JSX.Element {
             onPaneClick={onPaneClick}
             onPaneContextMenu={onPaneContextMenu}
             onNodeContextMenu={onNodeContextMenu}
+            onSelectionContextMenu={onSelectionContextMenu}
             onEdgeContextMenu={onEdgeContextMenu}
             connectionMode={ConnectionMode.Loose}
             deleteKeyCode={null}
@@ -647,6 +882,16 @@ function CanvasFlow(): JSX.Element {
                 currentFontSize={formattingSelection.fontSize}
                 currentTextAlign={formattingSelection.textAlign}
                 allTextShape={formattingSelection.allTextShape}
+              />
+            )}
+            {edgeFormattingSelection.edgeIds.length > 0 && (
+              <EdgeFormattingToolbar
+                edgeIds={edgeFormattingSelection.edgeIds}
+                currentStyle={edgeFormattingSelection.style}
+                currentColor={edgeFormattingSelection.color}
+                currentWidth={edgeFormattingSelection.width}
+                currentMarkerStart={edgeFormattingSelection.markerStart}
+                currentMarkerEnd={edgeFormattingSelection.markerEnd}
               />
             )}
           </ReactFlow>

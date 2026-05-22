@@ -285,8 +285,13 @@ export function App(): JSX.Element {
 
   // ---- Title bar ----------------------------------------------------------
 
+  // When the map has been saved, prefer the file name (without extension) over
+  // the internal map title so the title bar reflects what the user sees on disk.
+  const displayName = filePath
+    ? filePath.replace(/^.*[\\/]/, '').replace(/\.awmm$/i, '')
+    : mindMap?.title;
   const title = mindMap
-    ? `${isDirty ? '● ' : ''}${mindMap.title}${filePath ? '' : ' (unsaved)'} — AwapiMindmap`
+    ? `${isDirty ? '● ' : ''}${displayName}${filePath ? '' : ' (unsaved)'} — AwapiMindmap`
     : 'AwapiMindmap';
   document.title = title;
 

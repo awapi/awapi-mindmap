@@ -25,6 +25,9 @@ export interface MindMapNode {
 
 export type EdgeStyle = 'default' | 'straight' | 'step' | 'smoothstep';
 
+/** Arrow marker style at an edge endpoint. */
+export type EdgeMarker = 'none' | 'arrow' | 'arrowclosed';
+
 export interface MindMapEdge {
   id: string;
   source: string;
@@ -33,6 +36,14 @@ export interface MindMapEdge {
   targetHandle?: string;
   /** Visual style of the edge. Defaults to 'default' (bezier). */
   edgeStyle?: EdgeStyle;
+  /** Stroke colour (CSS colour string). Defaults to the theme edge colour. */
+  strokeColor?: string;
+  /** Stroke width in pixels. Defaults to 1.5. */
+  strokeWidth?: number;
+  /** Arrow marker at the source end. Defaults to 'none'. */
+  markerStart?: EdgeMarker;
+  /** Arrow marker at the target end. Defaults to 'arrowclosed' for new edges. */
+  markerEnd?: EdgeMarker;
 }
 
 export interface MindMap {

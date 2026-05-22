@@ -739,6 +739,15 @@ body,
   border-color: var(--text-muted);
 }
 
+.node-toolbar__label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 0 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 /* =========================================================================
    Canvas area — relative container for the flow + floating toolbar
    ========================================================================= */

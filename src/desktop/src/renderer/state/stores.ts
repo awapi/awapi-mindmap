@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { MindMap, MindMapNode, MindMapEdge, NodeShape, EdgeStyle } from '../types/mindmap.js';
+import type { MindMap, MindMapNode, MindMapEdge, NodeShape, EdgeStyle, EdgeMarker } from '../types/mindmap.js';
 import { nanoid } from '../utils/nanoid.js';
 
 const MAX_HISTORY = 50;
@@ -35,6 +35,8 @@ export interface MindMapState {
 
   // Node / edge mutations (each pushes to undo history)
   addNode: (node: MindMapNode, parentEdge?: MindMapEdge) => void;
+  /** Batch insert nodes + edges as a single undo snapshot (used by paste). */
+  addNodes: (nodes: MindMapNode[], edges: MindMapEdge[]) => void;
   deleteNodes: (ids: string[]) => void;
   deleteEdges: (ids: string[]) => void;
   renameNode: (id: string, label: string) => void;
@@ -47,11 +49,26 @@ export interface MindMapState {
     position: { x: number; y: number },
   ) => void;
   syncPositions: (updates: Array<{ id: string; position: { x: number; y: number } }>) => void;
+  /** Batch position update that pushes a single undo snapshot (used by align / distribute). */
+  setNodePositions: (updates: Array<{ id: string; position: { x: number; y: number } }>) => void;
+  /** Batch size + position update that pushes a single undo snapshot (used by same-size). */
+  setNodeSizes: (
+    updates: Array<{
+      id: string;
+      width: number;
+      height: number;
+      position?: { x: number; y: number };
+    }>,
+  ) => void;
   setNodeShape: (ids: string[], shape: NodeShape) => void;
   setNodeColor: (ids: string[], color: string | undefined) => void;
   setNodeFontSize: (ids: string[], fontSize: number | undefined) => void;
   setNodeTextAlign: (ids: string[], textAlign: 'left' | 'center' | 'right' | undefined) => void;
   setEdgeStyle: (id: string, style: EdgeStyle) => void;
+  setEdgeColor: (ids: string[], color: string | undefined) => void;
+  setEdgeWidth: (ids: string[], width: number | undefined) => void;
+  setEdgeMarkerStart: (ids: string[], marker: EdgeMarker) => void;
+  setEdgeMarkerEnd: (ids: string[], marker: EdgeMarker) => void;
 
   // Undo / redo
   undo: () => void;
@@ -123,6 +140,22 @@ export const useMindMapStore = create<MindMapState>()((set) => ({
           ...s.mindMap,
           nodes: [...s.mindMap.nodes, node],
           edges: parentEdge ? [...s.mindMap.edges, parentEdge] : s.mindMap.edges,
+          updatedAt: new Date().toISOString(),
+        },
+        isDirty: true,
+      };
+    }),
+
+  addNodes: (nodesToAdd, edgesToAdd) =>
+    set((s) => {
+      if (!s.mindMap || nodesToAdd.length === 0) return {};
+      return {
+        history: pushHistory(s.history, s.mindMap),
+        future: [],
+        mindMap: {
+          ...s.mindMap,
+          nodes: [...s.mindMap.nodes, ...nodesToAdd],
+          edges: [...s.mindMap.edges, ...edgesToAdd],
           updatedAt: new Date().toISOString(),
         },
         isDirty: true,
@@ -244,6 +277,50 @@ export const useMindMapStore = create<MindMapState>()((set) => ({
       };
     }),
 
+  setNodePositions: (updates) =>
+    set((s) => {
+      if (!s.mindMap || updates.length === 0) return {};
+      const posMap = new Map(updates.map((u) => [u.id, u.position]));
+      return {
+        history: pushHistory(s.history, s.mindMap),
+        future: [],
+        mindMap: {
+          ...s.mindMap,
+          nodes: s.mindMap.nodes.map((n) => {
+            const pos = posMap.get(n.id);
+            return pos ? { ...n, position: pos } : n;
+          }),
+          updatedAt: new Date().toISOString(),
+        },
+        isDirty: true,
+      };
+    }),
+
+  setNodeSizes: (updates) =>
+    set((s) => {
+      if (!s.mindMap || updates.length === 0) return {};
+      const sizeMap = new Map(updates.map((u) => [u.id, u]));
+      return {
+        history: pushHistory(s.history, s.mindMap),
+        future: [],
+        mindMap: {
+          ...s.mindMap,
+          nodes: s.mindMap.nodes.map((n) => {
+            const u = sizeMap.get(n.id);
+            if (!u) return n;
+            return {
+              ...n,
+              width: u.width,
+              height: u.height,
+              ...(u.position ? { position: u.position } : {}),
+            };
+          }),
+          updatedAt: new Date().toISOString(),
+        },
+        isDirty: true,
+      };
+    }),
+
   setNodeShape: (ids, shape) =>
     set((s) => {
       if (!s.mindMap || ids.length === 0) return {};
@@ -317,6 +394,70 @@ export const useMindMapStore = create<MindMapState>()((set) => ({
         mindMap: {
           ...s.mindMap,
           edges: s.mindMap.edges.map((e) => (e.id === id ? { ...e, edgeStyle: style } : e)),
+          updatedAt: new Date().toISOString(),
+        },
+        isDirty: true,
+      };
+    }),
+
+  setEdgeColor: (ids, color) =>
+    set((s) => {
+      if (!s.mindMap || ids.length === 0) return {};
+      const idSet = new Set(ids);
+      return {
+        history: pushHistory(s.history, s.mindMap),
+        future: [],
+        mindMap: {
+          ...s.mindMap,
+          edges: s.mindMap.edges.map((e) => (idSet.has(e.id) ? { ...e, strokeColor: color } : e)),
+          updatedAt: new Date().toISOString(),
+        },
+        isDirty: true,
+      };
+    }),
+
+  setEdgeWidth: (ids, width) =>
+    set((s) => {
+      if (!s.mindMap || ids.length === 0) return {};
+      const idSet = new Set(ids);
+      return {
+        history: pushHistory(s.history, s.mindMap),
+        future: [],
+        mindMap: {
+          ...s.mindMap,
+          edges: s.mindMap.edges.map((e) => (idSet.has(e.id) ? { ...e, strokeWidth: width } : e)),
+          updatedAt: new Date().toISOString(),
+        },
+        isDirty: true,
+      };
+    }),
+
+  setEdgeMarkerStart: (ids, marker) =>
+    set((s) => {
+      if (!s.mindMap || ids.length === 0) return {};
+      const idSet = new Set(ids);
+      return {
+        history: pushHistory(s.history, s.mindMap),
+        future: [],
+        mindMap: {
+          ...s.mindMap,
+          edges: s.mindMap.edges.map((e) => (idSet.has(e.id) ? { ...e, markerStart: marker } : e)),
+          updatedAt: new Date().toISOString(),
+        },
+        isDirty: true,
+      };
+    }),
+
+  setEdgeMarkerEnd: (ids, marker) =>
+    set((s) => {
+      if (!s.mindMap || ids.length === 0) return {};
+      const idSet = new Set(ids);
+      return {
+        history: pushHistory(s.history, s.mindMap),
+        future: [],
+        mindMap: {
+          ...s.mindMap,
+          edges: s.mindMap.edges.map((e) => (idSet.has(e.id) ? { ...e, markerEnd: marker } : e)),
           updatedAt: new Date().toISOString(),
         },
         isDirty: true,
