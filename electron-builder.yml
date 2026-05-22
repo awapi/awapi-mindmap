@@ -19,6 +19,7 @@ forceCodeSigning: false
 
 mac:
   category: public.app-category.productivity
+  icon: ../../resources/icon.icns
   target:
     - target: dmg
       arch: [x64, arm64]
@@ -28,7 +29,11 @@ mac:
   gatekeeperAssess: false
   identity: null
 
+dmg:
+  icon: ../../resources/icon.icns
+
 win:
+  icon: ../../resources/icon.ico
   target:
     - target: nsis
     - target: msi
@@ -38,6 +43,9 @@ nsis:
   perMachine: false
   allowToChangeInstallationDirectory: true
   artifactName: ${productName}-${version}-${arch}-setup.${ext}
+  installerIcon: ../../resources/icon.ico
+  uninstallerIcon: ../../resources/icon.ico
+  installerHeaderIcon: ../../resources/icon.ico
 
 msi:
   oneClick: false
@@ -48,6 +56,7 @@ msi:
 linux:
   category: Office
   maintainer: Awapi <support@awapi.com>
+  icon: ../../resources/icon.png
   artifactName: ${productName}-${version}-${arch}.${ext}
   target:
     - target: AppImage
@@ -64,3 +73,9 @@ publish:
 
 asarUnpack:
   - "**/*.node"
+
+extraResources:
+  - from: ../../resources/icon.png
+    to: icon.png
+  - from: ../../resources/icon.ico
+    to: icon.ico

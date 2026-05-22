@@ -40,10 +40,10 @@ files, dark/light theme, auto-updates from a private GitHub Releases feed.
 
 ## Phase 4 — File management
 
-- [ ] New map, Open, Save, Save As wired end-to-end (menu + keyboard shortcuts)
-- [ ] Recent files list (last 10) stored across sessions
-- [ ] Unsaved-changes guard: prompt before New / Open / Quit when dirty
-- [ ] Auto-save to a temp file every 60 seconds; recovered on next launch if the app crashed
+- [x] New map, Open, Save, Save As wired end-to-end (menu + keyboard shortcuts)
+- [x] Recent files list (last 10) stored across sessions
+- [x] Unsaved-changes guard: prompt before New / Open / Quit when dirty
+- [x] Auto-save to a temp file every 60 seconds; recovered on next launch if the app crashed
 
 ## Phase 5 — Layout & navigation
 

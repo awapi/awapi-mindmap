@@ -1,9 +1,10 @@
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
-import { BrowserWindow, Menu, app, ipcMain, shell, dialog } from 'electron';
+import { promises as fs } from 'node:fs';
+import { BrowserWindow, Menu, app, ipcMain, shell, dialog, nativeImage } from 'electron';
 import { autoUpdater } from 'electron-updater';
 
-import { IpcChannel } from './ipc.js';
+import { IpcChannel, type AutosavePayload } from './ipc.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
@@ -13,13 +14,64 @@ const resourcesPath =
     ? join(__dirname, '../../../../resources')
     : join(process.resourcesPath);
 
+const MAX_RECENTS = 10;
+
+// --- Persistent state (recents, autosave) ----------------------------------
+
+function recentsFile(): string {
+  return join(app.getPath('userData'), 'recent-files.json');
+}
+
+function autosaveFile(): string {
+  return join(app.getPath('userData'), 'autosave.awmm');
+}
+
+async function loadRecents(): Promise<string[]> {
+  try {
+    const raw = await fs.readFile(recentsFile(), 'utf8');
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((p): p is string => typeof p === 'string').slice(0, MAX_RECENTS);
+    }
+  } catch {
+    /* file missing or invalid — fall through */
+  }
+  return [];
+}
+
+async function saveRecents(paths: string[]): Promise<void> {
+  await fs.writeFile(recentsFile(), JSON.stringify(paths, null, 2), 'utf8');
+}
+
+async function addRecent(path: string): Promise<string[]> {
+  const current = await loadRecents();
+  const next = [path, ...current.filter((p) => p !== path)].slice(0, MAX_RECENTS);
+  await saveRecents(next);
+  app.addRecentDocument(path);
+  return next;
+}
+
+// --- Renderer-tracked state mirrored in main -------------------------------
+
+let isDirty = false;
+let currentFilePath: string | undefined;
+let hasMap = false;
+/** When true, we are mid-shutdown after a save-and-close confirmation. */
+let allowNextClose = false;
+
 function createWindow(): BrowserWindow {
+  // Window icon: used on Windows/Linux title bars and taskbars.
+  // macOS uses the icon embedded in the .app bundle (set by electron-builder),
+  // so passing `icon` here is a harmless no-op on darwin.
+  const winIcon = join(resourcesPath, process.platform === 'win32' ? 'icon.ico' : 'icon.png');
+
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
     minWidth: 800,
     minHeight: 600,
     title: 'AwapiMindmap',
+    icon: winIcon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: true,
@@ -34,10 +86,56 @@ function createWindow(): BrowserWindow {
     win.loadFile(join(__dirname, '../renderer/index.html'));
   }
 
+  // Intercept window close to prompt on unsaved changes.
+  win.on('close', (event) => {
+    if (allowNextClose || !isDirty) return;
+    event.preventDefault();
+    const choice = dialog.showMessageBoxSync(win, {
+      type: 'warning',
+      buttons: ['Save', "Don't Save", 'Cancel'],
+      defaultId: 0,
+      cancelId: 2,
+      title: 'Unsaved changes',
+      message: 'You have unsaved changes.',
+      detail: 'Do you want to save them before quitting?',
+    });
+    if (choice === 1) {
+      // Don't Save — close without saving.
+      allowNextClose = true;
+      win.destroy();
+    } else if (choice === 0) {
+      // Save — delegate to renderer; it will call CloseWindow when done.
+      win.webContents.send(IpcChannel.MenuSaveAndClose);
+    }
+    // choice === 2: Cancel — do nothing, window stays open.
+  });
+
   return win;
 }
 
-function buildMenu(): void {
+async function buildMenu(): Promise<void> {
+  const recents = await loadRecents();
+
+  const recentSubmenu: Electron.MenuItemConstructorOptions[] =
+    recents.length === 0
+      ? [{ label: '(empty)', enabled: false }]
+      : [
+          ...recents.map<Electron.MenuItemConstructorOptions>((p) => ({
+            label: p,
+            click: (_item, win) =>
+              (win as BrowserWindow | undefined)?.webContents.send(IpcChannel.MenuOpenRecent, p),
+          })),
+          { type: 'separator' },
+          {
+            label: 'Clear Recent',
+            click: async () => {
+              await saveRecents([]);
+              app.clearRecentDocuments();
+              await buildMenu();
+            },
+          },
+        ];
+
   const template: Electron.MenuItemConstructorOptions[] = [
     {
       label: 'File',
@@ -52,15 +150,20 @@ function buildMenu(): void {
           accelerator: 'CmdOrCtrl+O',
           click: (_item, win) => (win as BrowserWindow | undefined)?.webContents.send(IpcChannel.MenuOpen),
         },
+        { label: 'Open Recent', submenu: recentSubmenu },
         { type: 'separator' },
         {
+          id: 'save',
           label: 'Save',
           accelerator: 'CmdOrCtrl+S',
+          enabled: hasMap,
           click: (_item, win) => (win as BrowserWindow | undefined)?.webContents.send(IpcChannel.MenuSave),
         },
         {
+          id: 'saveAs',
           label: 'Save As…',
           accelerator: 'CmdOrCtrl+Shift+S',
+          enabled: hasMap,
           click: (_item, win) => (win as BrowserWindow | undefined)?.webContents.send(IpcChannel.MenuSaveAs),
         },
         { type: 'separator' },
@@ -143,22 +246,86 @@ function registerIpcHandlers(): void {
     return dialog.showSaveDialog(options);
   });
 
+  ipcMain.handle(IpcChannel.ShowMessageBox, async (event, options: Electron.MessageBoxOptions) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    return win
+      ? dialog.showMessageBox(win, options)
+      : dialog.showMessageBox(options);
+  });
+
   ipcMain.handle(IpcChannel.ReadFile, async (_event, filePath: string) => {
-    const { promises: fs } = await import('node:fs');
     return fs.readFile(filePath, 'utf8');
   });
 
   ipcMain.handle(IpcChannel.WriteFile, async (_event, filePath: string, content: string) => {
-    const { promises: fs } = await import('node:fs');
     await fs.writeFile(filePath, content, 'utf8');
   });
 
   ipcMain.handle(IpcChannel.GetVersion, () => app.getVersion());
+
+  // Dirty / file path tracking
+  ipcMain.handle(IpcChannel.SetDirty, (_event, dirty: boolean) => {
+    isDirty = dirty;
+  });
+  ipcMain.handle(IpcChannel.SetFilePath, (_event, filePath: string | undefined) => {
+    currentFilePath = filePath;
+  });
+  ipcMain.handle(IpcChannel.SetHasMap, async (_event, value: boolean) => {
+    if (hasMap === value) return;
+    hasMap = value;
+    await buildMenu();
+  });
+  ipcMain.handle(IpcChannel.CloseWindow, (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) return;
+    allowNextClose = true;
+    win.destroy();
+  });
+
+  // Recents
+  ipcMain.handle(IpcChannel.RecentsGet, () => loadRecents());
+  ipcMain.handle(IpcChannel.RecentsAdd, async (_event, path: string) => {
+    const next = await addRecent(path);
+    await buildMenu();
+    return next;
+  });
+  ipcMain.handle(IpcChannel.RecentsClear, async () => {
+    await saveRecents([]);
+    app.clearRecentDocuments();
+    await buildMenu();
+  });
+
+  // Autosave
+  ipcMain.handle(IpcChannel.AutosaveWrite, async (_event, payload: AutosavePayload) => {
+    await fs.writeFile(autosaveFile(), JSON.stringify(payload), 'utf8');
+  });
+  ipcMain.handle(IpcChannel.AutosaveRead, async (): Promise<AutosavePayload | null> => {
+    try {
+      const raw = await fs.readFile(autosaveFile(), 'utf8');
+      return JSON.parse(raw) as AutosavePayload;
+    } catch {
+      return null;
+    }
+  });
+  ipcMain.handle(IpcChannel.AutosaveClear, async () => {
+    try {
+      await fs.unlink(autosaveFile());
+    } catch {
+      /* not present — fine */
+    }
+  });
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // In dev on macOS, the bundle icon is Electron's default. Override the
+  // dock icon so the app shows our brand while running `pnpm dev`.
+  if (process.platform === 'darwin' && process.env['ELECTRON_RENDERER_URL']) {
+    const dockImg = nativeImage.createFromPath(join(resourcesPath, 'icon.png'));
+    if (!dockImg.isEmpty()) app.dock?.setIcon(dockImg);
+  }
+
   registerIpcHandlers();
-  buildMenu();
+  await buildMenu();
   createWindow();
 
   app.on('activate', () => {
@@ -192,6 +359,6 @@ app.on('web-contents-created', (_event, contents) => {
   contents.setWindowOpenHandler(() => ({ action: 'deny' }));
 });
 
-// Unused variable suppressed — resourcesPath reserved for icon lookup once
-// a branded icon is added to resources/.
-void resourcesPath;
+// Unused variable suppressed — currentFilePath is reserved for future
+// use (e.g. window title in main, packaging metadata).
+void currentFilePath;
