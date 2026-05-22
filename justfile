@@ -68,3 +68,26 @@ build:
 #        just package linux     (AppImage+deb, x64+arm64)
 package target="": build
     ./src/desktop/node_modules/.bin/electron-builder --config {{justfile_directory()}}/electron-builder.yml --projectDir src/desktop {{ if target == "" { "" } else if target == "mac" { "--mac" } else if target == "win" { "--win" } else if target == "linux" { "--linux" } else { "--" + target } }}
+
+# Package for all platforms (CI only; requires cross-build tooling).
+package-all: build
+    ./src/desktop/node_modules/.bin/electron-builder --config {{justfile_directory()}}/electron-builder.yml --projectDir src/desktop -mwl
+
+# ---- release ------------------------------------------------------------
+
+# Bump version, tag, push, and optionally publish packages to GitHub Releases.
+# Usage: just release 0.1.0           (git tag + push; CI builds)
+#        just release 0.1.0 publish   (also builds and publishes installers for all platforms)
+# Requires GH_TOKEN in .env when using the publish mode.
+release version mode="":
+    @echo "Releasing v{{version}}"
+    pnpm -r exec npm version {{version}} --no-git-tag-version
+    git add -A
+    git commit -m "chore: release v{{version}}"
+    git tag -a "v{{version}}" -m "v{{version}}"
+    git push origin main --follow-tags
+    {{ if mode == "publish" { "just _publish-packages" } else { "" } }}
+
+# (private) Build all-platform packages and upload to GitHub Releases.
+_publish-packages: build
+    ./src/desktop/node_modules/.bin/electron-builder --config {{justfile_directory()}}/electron-builder.yml --projectDir src/desktop -mwl --publish always
