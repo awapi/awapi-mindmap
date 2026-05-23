@@ -30,12 +30,12 @@ import { StickyNote } from './StickyNote.js';
 import { CommentNode } from './CommentNode.js';
 import { ContextMenu } from './ContextMenu.js';
 import { ShapePicker } from './ShapePicker.js';
-import { CanvasToolbar } from './CanvasToolbar.js';
+import { CanvasToolbar, DefaultStylesToolbar } from './CanvasToolbar.js';
 import { NodeFormattingToolbar } from './NodeFormattingToolbar.js';
 import { EdgeFormattingToolbar } from './EdgeFormattingToolbar.js';
 import { computeRadialLayout } from '../utils/layout.js';
 import { toPlainText, toMarkdown } from '../utils/export.js';
-import type { ActiveTool, ExportType } from './CanvasToolbar.js';
+import type { ActiveTool, DefaultStyleSettings, ExportType } from './CanvasToolbar.js';
 import type { ContextMenuAction } from './ContextMenu.js';
 import type { MindMapNode, MindMapEdge, NodeShape, EdgeMarker } from '../types/mindmap.js';
 import { nanoid } from '../utils/nanoid.js';
@@ -127,6 +127,30 @@ function toFlowEdge(e: MindMapEdge): Edge {
   };
 }
 
+function withDefaultNodeStyle(
+  node: MindMapNode,
+  defaults: DefaultStyleSettings,
+  shape: NodeShape,
+): MindMapNode {
+  return {
+    ...node,
+    shape,
+    color: defaults.nodeColor,
+    textColor: defaults.nodeTextColor,
+    fontSize: defaults.nodeFontSize,
+  };
+}
+
+function withDefaultEdgeStyle(edge: MindMapEdge, defaults: DefaultStyleSettings): MindMapEdge {
+  return {
+    ...edge,
+    edgeStyle: defaults.edgeStyle,
+    strokeColor: defaults.edgeColor,
+    strokeWidth: defaults.edgeWidth,
+    markerEnd: defaults.edgeMarkerEnd,
+  };
+}
+
 interface ContextMenuState {
   x: number;
   y: number;
@@ -193,6 +217,13 @@ function CanvasFlow(): JSX.Element {
   const [shapePicker, setShapePicker] = useState<ShapePickerState | null>(null);
   const [activeTool, setActiveTool] = useState<ActiveTool>('select');
   const [showGrid, setShowGrid] = useState(true);
+  const [defaultStyles, setDefaultStyles] = useState<DefaultStyleSettings>({
+    nodeShape: 'rectangle',
+    nodeFontSize: 10,
+    edgeStyle: 'default',
+    edgeWidth: 1.5,
+    edgeMarkerEnd: 'arrowclosed',
+  });
   const pendingSource = useRef<{ nodeId: string; handleId: string | null } | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   // In-memory clipboard for copy/cut/paste of nodes (+ edges internal to the selection).
@@ -261,10 +292,11 @@ function CanvasFlow(): JSX.Element {
         sourceHandle: connection.sourceHandle ?? undefined,
         targetHandle,
       };
-      addEdgeAction(edge);
-      setEdges((eds) => [...eds, toFlowEdge(edge)]);
+      const styledEdge = withDefaultEdgeStyle(edge, defaultStyles);
+      addEdgeAction(styledEdge);
+      setEdges((eds) => [...eds, toFlowEdge(styledEdge)]);
     },
-    [addEdgeAction, setEdges, getNodes],
+    [addEdgeAction, defaultStyles, setEdges, getNodes],
   );
 
   const onReconnect = useCallback(
@@ -510,15 +542,18 @@ function CanvasFlow(): JSX.Element {
     (
       flowPosition: { x: number; y: number },
       parentId?: string,
-      shape: NodeShape = 'rectangle',
+      shape: NodeShape = defaultStyles.nodeShape,
       parentHandleId?: string | null,
     ) => {
-      const newNode: MindMapNode = {
-        id: nanoid(),
-        label: 'New Node',
-        position: flowPosition,
+      const newNode = withDefaultNodeStyle(
+        {
+          id: nanoid(),
+          label: 'New Node',
+          position: flowPosition,
+        },
+        defaultStyles,
         shape,
-      };
+      );
       let targetHandle: string | undefined;
       if (parentId) {
         const parentNode = getNodes().find((n) => n.id === parentId);
@@ -532,13 +567,16 @@ function CanvasFlow(): JSX.Element {
         }
       }
       const parentEdge: MindMapEdge | undefined = parentId
-        ? {
-            id: nanoid(),
-            source: parentId,
-            target: newNode.id,
-            sourceHandle: parentHandleId ?? undefined,
-            targetHandle,
-          }
+        ? withDefaultEdgeStyle(
+            {
+              id: nanoid(),
+              source: parentId,
+              target: newNode.id,
+              sourceHandle: parentHandleId ?? undefined,
+              targetHandle,
+            },
+            defaultStyles,
+          )
         : undefined;
 
       addNodeAction(newNode, parentEdge);
@@ -547,7 +585,7 @@ function CanvasFlow(): JSX.Element {
         setEdges((eds) => [...eds, toFlowEdge(parentEdge)]);
       }
     },
-    [addNodeAction, setNodes, setEdges, getNodes],
+    [addNodeAction, defaultStyles, setNodes, setEdges, getNodes],
   );
 
   const onShapeSelect = useCallback(
@@ -570,17 +608,20 @@ function CanvasFlow(): JSX.Element {
 
       const flowPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
       const shape: NodeShape = activeTool === 'sticky' ? 'sticky' : 'comment';
-      const newNode: MindMapNode = {
-        id: nanoid(),
-        label: shape === 'sticky' ? 'Note…' : 'Comment…',
-        position: flowPos,
+      const newNode = withDefaultNodeStyle(
+        {
+          id: nanoid(),
+          label: shape === 'sticky' ? 'Note…' : 'Comment…',
+          position: flowPos,
+        },
+        defaultStyles,
         shape,
-      };
+      );
       addNodeAction(newNode);
       setNodes((nds) => [...nds, toFlowNode(newNode)]);
       setActiveTool('select');
     },
-    [activeTool, screenToFlowPosition, addNodeAction, setNodes],
+    [activeTool, defaultStyles, screenToFlowPosition, addNodeAction, setNodes],
   );
 
   // --- Keyboard handler: Delete/Backspace for selection; Cmd+Z / Cmd+Shift+Z for undo/redo ---
@@ -1039,6 +1080,11 @@ function CanvasFlow(): JSX.Element {
         >
           ↪ Redo
         </button>
+        <div className="toolbar-divider" />
+        <DefaultStylesToolbar
+          defaultStyles={defaultStyles}
+          onDefaultStylesChange={setDefaultStyles}
+        />
         <div className="toolbar-spacer" />
         <button className="toolbar-btn" title="Toggle light / dark theme" onClick={toggleTheme}>
           {theme === 'dark' ? '☀ Light' : '☾ Dark'}

@@ -10,6 +10,9 @@ export function CommentNode({ id, data, selected }: NodeProps): JSX.Element {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(String(data.label ?? ''));
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const color = data.color as string | undefined;
+  const textColor = data.textColor as string | undefined;
+  const fontSize = data.fontSize as number | undefined;
 
   // Keep draft in sync on external changes (undo/redo)
   useEffect(() => {
@@ -70,7 +73,14 @@ export function CommentNode({ id, data, selected }: NodeProps): JSX.Element {
       <Handle id="right" type="source" position={Position.Right} />
       <Handle id="bottom" type="source" position={Position.Bottom} />
       <Handle id="left" type="source" position={Position.Left} />
-      <div className="comment-node__bubble">
+      <div
+        className="comment-node__bubble"
+        style={{
+          ...(color ? { background: color } : {}),
+          ...(textColor ? { color: textColor } : {}),
+          ...(fontSize != null ? { fontSize } : {}),
+        }}
+      >
         {editing ? (
           <textarea
             ref={inputRef}

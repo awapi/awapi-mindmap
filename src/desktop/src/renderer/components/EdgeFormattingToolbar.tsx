@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { JSX } from 'react';
-import { Panel, useReactFlow, MarkerType, type EdgeMarkerType } from '@xyflow/react';
+import { ViewportPortal, useReactFlow, MarkerType, type EdgeMarkerType } from '@xyflow/react';
 import { useMindMapStore } from '../state/stores.js';
 import type { EdgeMarker, EdgeStyle } from '../types/mindmap.js';
+import { useDraggableToolbar } from '../hooks/useDraggableToolbar.js';
 import { ColorPicker } from './ColorPicker.js';
 
 interface EdgeFormattingToolbarProps {
@@ -45,6 +46,94 @@ function markerToRf(marker: EdgeMarker | undefined): EdgeMarkerType | undefined 
   return { type: marker === 'arrow' ? MarkerType.Arrow : MarkerType.ArrowClosed };
 }
 
+function nodeCenter(node: ReturnType<ReturnType<typeof useReactFlow>['getNodes']>[number]): {
+  x: number;
+  y: number;
+} {
+  const width = (node.measured?.width ?? node.width ?? 80) as number;
+  const height = (node.measured?.height ?? node.height ?? 40) as number;
+  return { x: node.position.x + width / 2, y: node.position.y + height / 2 };
+}
+
+interface IconDropdownOption<T extends string> {
+  value: T;
+  label: string;
+  glyph: string;
+}
+
+interface IconDropdownProps<T extends string> {
+  ariaLabel: string;
+  titlePrefix: string;
+  value: T | undefined;
+  fallbackValue: T;
+  options: Array<IconDropdownOption<T>>;
+  onChange: (value: T) => void;
+}
+
+function IconDropdown<T extends string>({
+  ariaLabel,
+  titlePrefix,
+  value,
+  fallbackValue,
+  options,
+  onChange,
+}: IconDropdownProps<T>): JSX.Element {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const effectiveValue = value ?? fallbackValue;
+  const selected = options.find((option) => option.value === effectiveValue) ?? options[0]!;
+  const mixed = value === undefined;
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (event: PointerEvent) => {
+      if (ref.current?.contains(event.target as Node)) return;
+      setOpen(false);
+    };
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="node-toolbar__dropdown">
+      <button
+        type="button"
+        className={`node-toolbar__select-btn${open ? ' is-active' : ''}`}
+        title={mixed ? `${titlePrefix}: Mixed` : `${titlePrefix}: ${selected.label}`}
+        aria-label={mixed ? `${ariaLabel}: Mixed` : `${ariaLabel}: ${selected.label}`}
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span className="node-toolbar__select-glyph">{mixed ? '—' : selected.glyph}</span>
+        <span className="node-toolbar__select-arrow" aria-hidden="true">
+          ▾
+        </span>
+      </button>
+      {open && (
+        <div className="node-toolbar__menu" role="menu">
+          {options.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              className={`node-toolbar__menu-item${option.value === effectiveValue && !mixed ? ' is-active' : ''}`}
+              title={option.label}
+              role="menuitemradio"
+              aria-checked={option.value === effectiveValue && !mixed}
+              onClick={() => {
+                onChange(option.value);
+                setOpen(false);
+              }}
+            >
+              <span className="node-toolbar__menu-glyph">{option.glyph}</span>
+              <span className="node-toolbar__menu-label">{option.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function EdgeFormattingToolbar({
   edgeIds,
   currentStyle,
@@ -58,7 +147,7 @@ export function EdgeFormattingToolbar({
   const setEdgeWidth = useMindMapStore((s) => s.setEdgeWidth);
   const setEdgeMarkerStart = useMindMapStore((s) => s.setEdgeMarkerStart);
   const setEdgeMarkerEnd = useMindMapStore((s) => s.setEdgeMarkerEnd);
-  const { setEdges } = useReactFlow();
+  const { setEdges, getEdges, getNodes } = useReactFlow();
 
   const idSet = new Set(edgeIds);
 
@@ -142,34 +231,73 @@ export function EdgeFormattingToolbar({
     setWidthDraft(String(next));
   };
 
-  if (edgeIds.length === 0) return null;
-
   // Effective marker-end defaults to 'arrowclosed' when unset (matches toFlowEdge default).
   const effectiveMarkerEnd: EdgeMarker | undefined =
     currentMarkerEnd === undefined ? 'arrowclosed' : currentMarkerEnd;
   const effectiveMarkerStart: EdgeMarker | undefined =
     currentMarkerStart === undefined ? 'none' : currentMarkerStart;
+  const selectedEdgeKey = edgeIds.join(',');
+  const { offset, dragHandleProps } = useDraggableToolbar(selectedEdgeKey);
+
+  const anchor = useMemo(() => {
+    const selectedIds = new Set(edgeIds);
+    const flowEdges = getEdges().filter((edge) => selectedIds.has(edge.id));
+    if (flowEdges.length === 0) return null;
+    const flowNodes = getNodes();
+    const points = flowEdges
+      .map((edge) => {
+        const source = flowNodes.find((node) => node.id === edge.source);
+        const target = flowNodes.find((node) => node.id === edge.target);
+        if (!source || !target) return null;
+        const sourceCenter = nodeCenter(source);
+        const targetCenter = nodeCenter(target);
+        return {
+          x: (sourceCenter.x + targetCenter.x) / 2,
+          y: (sourceCenter.y + targetCenter.y) / 2,
+        };
+      })
+      .filter((point): point is { x: number; y: number } => point != null);
+    if (points.length === 0) return null;
+    return {
+      x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
+      y: points.reduce((sum, point) => sum + point.y, 0) / points.length,
+    };
+  }, [selectedEdgeKey, getEdges, getNodes]);
+
+  if (edgeIds.length === 0 || !anchor) return null;
 
   return (
-    <Panel position="top-center">
+    <ViewportPortal>
       <div
-        className="node-toolbar nodrag nopan"
+        className="node-toolbar edge-toolbar nodrag nopan"
+        style={
+          {
+            left: anchor.x,
+            top: anchor.y,
+            '--toolbar-offset-x': `${offset.x}px`,
+            '--toolbar-offset-y': `${offset.y}px`,
+          } as React.CSSProperties
+        }
         onDoubleClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="node-toolbar__group" role="group" aria-label="Edge style">
-          {STYLE_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              className={`node-toolbar__btn${currentStyle === opt.value ? ' is-active' : ''}`}
-              title={opt.label}
-              onClick={() => applyStyle(opt.value)}
-            >
-              {opt.glyph}
-            </button>
-          ))}
-        </div>
+        <button
+          type="button"
+          className="node-toolbar__drag-handle"
+          title="Move toolbar"
+          aria-label="Move toolbar"
+          {...dragHandleProps}
+        >
+          ⋮⋮
+        </button>
+        <IconDropdown
+          ariaLabel="Edge style"
+          titlePrefix="Edge style"
+          value={currentStyle}
+          fallbackValue="default"
+          options={STYLE_OPTIONS}
+          onChange={applyStyle}
+        />
 
         <div className="node-toolbar__divider" />
 
@@ -232,17 +360,14 @@ export function EdgeFormattingToolbar({
           <span className="node-toolbar__label" title="Source end">
             S:
           </span>
-          {MARKER_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              className={`node-toolbar__btn${effectiveMarkerStart === opt.value ? ' is-active' : ''}`}
-              title={opt.label}
-              onClick={() => applyMarkerStart(opt.value)}
-            >
-              {opt.glyph}
-            </button>
-          ))}
+          <IconDropdown
+            ariaLabel="Source arrow"
+            titlePrefix="Source arrow"
+            value={effectiveMarkerStart}
+            fallbackValue="none"
+            options={MARKER_OPTIONS}
+            onChange={applyMarkerStart}
+          />
         </div>
 
         <div className="node-toolbar__divider" />
@@ -251,19 +376,16 @@ export function EdgeFormattingToolbar({
           <span className="node-toolbar__label" title="Target end">
             T:
           </span>
-          {MARKER_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              className={`node-toolbar__btn${effectiveMarkerEnd === opt.value ? ' is-active' : ''}`}
-              title={opt.label}
-              onClick={() => applyMarkerEnd(opt.value)}
-            >
-              {opt.glyph}
-            </button>
-          ))}
+          <IconDropdown
+            ariaLabel="Target arrow"
+            titlePrefix="Target arrow"
+            value={effectiveMarkerEnd}
+            fallbackValue="arrowclosed"
+            options={MARKER_OPTIONS}
+            onChange={applyMarkerEnd}
+          />
         </div>
       </div>
-    </Panel>
+    </ViewportPortal>
   );
 }

@@ -1,8 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
 import type { JSX } from 'react';
+import type { EdgeMarker, EdgeStyle, NodeShape } from '../types/mindmap.js';
+import { ColorPicker } from './ColorPicker.js';
 
 export type ActiveTool = 'select' | 'sticky' | 'comment';
 export type ExportType = 'png' | 'svg' | 'text' | 'markdown';
+
+export interface DefaultStyleSettings {
+  nodeShape: NodeShape;
+  nodeColor?: string;
+  nodeTextColor?: string;
+  nodeFontSize: number;
+  edgeStyle: EdgeStyle;
+  edgeColor?: string;
+  edgeWidth: number;
+  edgeMarkerEnd: EdgeMarker;
+}
 
 interface Props {
   activeTool: ActiveTool;
@@ -13,6 +26,11 @@ interface Props {
   onExport: (type: ExportType) => void;
   showGrid: boolean;
   onToggleGrid: () => void;
+}
+
+interface DefaultStylesToolbarProps {
+  defaultStyles: DefaultStyleSettings;
+  onDefaultStylesChange: (styles: DefaultStyleSettings) => void;
 }
 
 function IconAdd(): JSX.Element {
@@ -161,6 +179,237 @@ const EXPORT_OPTIONS: { type: ExportType; label: string; sublabel: string }[] = 
   { type: 'text', label: 'Plain Text', sublabel: 'Indented outline' },
   { type: 'markdown', label: 'Markdown', sublabel: 'Nested list' },
 ];
+
+const NODE_SHAPES: Array<{ value: NodeShape; label: string; glyph: string }> = [
+  { value: 'rectangle', label: 'Rectangle', glyph: '▭' },
+  { value: 'circle', label: 'Circle', glyph: '○' },
+  { value: 'ellipse', label: 'Ellipse', glyph: '⬭' },
+  { value: 'diamond', label: 'Diamond', glyph: '◇' },
+  { value: 'text', label: 'Text only', glyph: 'T' },
+  { value: 'sticky', label: 'Sticky note', glyph: '◰' },
+  { value: 'comment', label: 'Comment', glyph: '▱' },
+];
+
+const EDGE_STYLES: Array<{ value: EdgeStyle; label: string; glyph: string }> = [
+  { value: 'default', label: 'Curved', glyph: '⌒' },
+  { value: 'straight', label: 'Straight', glyph: '─' },
+  { value: 'step', label: 'Step', glyph: '⌐' },
+  { value: 'smoothstep', label: 'Smooth step', glyph: '⌒⌐' },
+];
+
+const EDGE_MARKERS: Array<{ value: EdgeMarker; label: string; glyph: string }> = [
+  { value: 'none', label: 'No arrow', glyph: '—' },
+  { value: 'arrow', label: 'Open arrow', glyph: '➔' },
+  { value: 'arrowclosed', label: 'Filled arrow', glyph: '➤' },
+];
+
+function clampNumber(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+interface IconDropdownOption<T extends string> {
+  value: T;
+  label: string;
+  glyph: string;
+}
+
+interface IconDropdownProps<T extends string> {
+  ariaLabel: string;
+  titlePrefix: string;
+  value: T;
+  options: Array<IconDropdownOption<T>>;
+  onChange: (value: T) => void;
+}
+
+function IconDropdown<T extends string>({
+  ariaLabel,
+  titlePrefix,
+  value,
+  options,
+  onChange,
+}: IconDropdownProps<T>): JSX.Element {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const selected = options.find((option) => option.value === value) ?? options[0]!;
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (event: PointerEvent) => {
+      if (ref.current?.contains(event.target as Node)) return;
+      setOpen(false);
+    };
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="top-defaults-toolbar__dropdown">
+      <button
+        type="button"
+        className={`top-defaults-toolbar__select-btn${open ? ' is-active' : ''}`}
+        title={`${titlePrefix}: ${selected.label}`}
+        aria-label={`${ariaLabel}: ${selected.label}`}
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span className="top-defaults-toolbar__select-glyph">{selected.glyph}</span>
+        <span className="top-defaults-toolbar__select-arrow" aria-hidden="true">
+          ▾
+        </span>
+      </button>
+      {open && (
+        <div className="top-defaults-toolbar__menu" role="menu">
+          {options.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              className={`top-defaults-toolbar__menu-item${option.value === value ? ' is-active' : ''}`}
+              title={option.label}
+              role="menuitemradio"
+              aria-checked={option.value === value}
+              onClick={() => {
+                onChange(option.value);
+                setOpen(false);
+              }}
+            >
+              <span className="top-defaults-toolbar__menu-glyph">{option.glyph}</span>
+              <span className="top-defaults-toolbar__menu-label">{option.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function DefaultStylesToolbar({
+  defaultStyles,
+  onDefaultStylesChange,
+}: DefaultStylesToolbarProps): JSX.Element {
+  const updateDefaults = (patch: Partial<DefaultStyleSettings>) => {
+    onDefaultStylesChange({ ...defaultStyles, ...patch });
+  };
+
+  return (
+    <div className="top-defaults-toolbar" role="toolbar" aria-label="Default styles">
+      <span className="top-defaults-toolbar__label">Defaults</span>
+      <IconDropdown
+        ariaLabel="Default node shape"
+        titlePrefix="Default shape"
+        value={defaultStyles.nodeShape}
+        options={NODE_SHAPES}
+        onChange={(nodeShape) => updateDefaults({ nodeShape })}
+      />
+      <ColorPicker
+        value={defaultStyles.nodeColor}
+        onChange={(nodeColor) => updateDefaults({ nodeColor })}
+        title="Default node fill colour"
+        allowReset
+      />
+      <ColorPicker
+        value={defaultStyles.nodeTextColor}
+        onChange={(nodeTextColor) => updateDefaults({ nodeTextColor })}
+        label="A"
+        title="Default text colour"
+        allowReset
+      />
+      <label
+        className="top-defaults-toolbar__field top-defaults-toolbar__field--number"
+        title="Default text size"
+      >
+        <span>Text</span>
+        <button
+          type="button"
+          className="top-defaults-toolbar__btn top-defaults-toolbar__font top-defaults-toolbar__font--small"
+          title="Decrease default text size"
+          disabled={defaultStyles.nodeFontSize <= 6}
+          onClick={() => updateDefaults({ nodeFontSize: defaultStyles.nodeFontSize - 2 })}
+        >
+          a
+        </button>
+        <input
+          type="number"
+          min={6}
+          max={96}
+          value={defaultStyles.nodeFontSize}
+          onChange={(e) => {
+            const parsed = Number(e.target.value);
+            if (Number.isFinite(parsed)) {
+              updateDefaults({ nodeFontSize: clampNumber(Math.round(parsed), 6, 96) });
+            }
+          }}
+        />
+        <button
+          type="button"
+          className="top-defaults-toolbar__btn top-defaults-toolbar__font top-defaults-toolbar__font--large"
+          title="Increase default text size"
+          disabled={defaultStyles.nodeFontSize >= 96}
+          onClick={() => updateDefaults({ nodeFontSize: defaultStyles.nodeFontSize + 2 })}
+        >
+          A
+        </button>
+      </label>
+      <div className="top-defaults-toolbar__divider" />
+      <IconDropdown
+        ariaLabel="Default line type"
+        titlePrefix="Default line"
+        value={defaultStyles.edgeStyle}
+        options={EDGE_STYLES}
+        onChange={(edgeStyle) => updateDefaults({ edgeStyle })}
+      />
+      <ColorPicker
+        value={defaultStyles.edgeColor}
+        onChange={(edgeColor) => updateDefaults({ edgeColor })}
+        title="Default line colour"
+        allowReset
+      />
+      <label
+        className="top-defaults-toolbar__field top-defaults-toolbar__field--number"
+        title="Default line width"
+      >
+        <span>Width</span>
+        <button
+          type="button"
+          className="top-defaults-toolbar__btn top-defaults-toolbar__font"
+          title="Decrease default line width"
+          disabled={defaultStyles.edgeWidth <= 1}
+          onClick={() => updateDefaults({ edgeWidth: clampNumber(defaultStyles.edgeWidth - 0.5, 1, 12) })}
+        >
+          −
+        </button>
+        <input
+          type="number"
+          min={1}
+          max={12}
+          step={0.5}
+          value={defaultStyles.edgeWidth}
+          onChange={(e) => {
+            const parsed = Number(e.target.value);
+            if (Number.isFinite(parsed)) {
+              updateDefaults({ edgeWidth: clampNumber(parsed, 1, 12) });
+            }
+          }}
+        />
+        <button
+          type="button"
+          className="top-defaults-toolbar__btn top-defaults-toolbar__font"
+          title="Increase default line width"
+          disabled={defaultStyles.edgeWidth >= 12}
+          onClick={() => updateDefaults({ edgeWidth: clampNumber(defaultStyles.edgeWidth + 0.5, 1, 12) })}
+        >
+          +
+        </button>
+      </label>
+      <IconDropdown
+        ariaLabel="Default target arrow"
+        titlePrefix="Default arrow"
+        value={defaultStyles.edgeMarkerEnd}
+        options={EDGE_MARKERS}
+        onChange={(edgeMarkerEnd) => updateDefaults({ edgeMarkerEnd })}
+      />
+    </div>
+  );
+}
 
 export function CanvasToolbar({
   activeTool,

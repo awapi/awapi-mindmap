@@ -106,6 +106,7 @@ export function StickyNote({ id, data, selected }: NodeProps): JSX.Element {
   );
 
   const bgColor = (data.color as string | undefined) ?? '#fef3c7';
+  const textColor = data.textColor as string | undefined;
   const fontSize = data.fontSize as number | undefined;
 
   return (
@@ -134,7 +135,11 @@ export function StickyNote({ id, data, selected }: NodeProps): JSX.Element {
       <Handle id="left" type="source" position={Position.Left} />
       <div
         className={`sticky-note${selected ? ' selected' : ''}${editing ? ' nodrag' : ''}`}
-        style={{ background: bgColor, ...(fontSize != null ? { fontSize } : {}) }}
+        style={{
+          background: bgColor,
+          ...(textColor ? { color: textColor } : {}),
+          ...(fontSize != null ? { fontSize } : {}),
+        }}
         onDoubleClick={handleDoubleClick}
       >
         {editing ? (

@@ -2,6 +2,7 @@ import { useState, useEffect, type RefObject } from 'react';
 import type { JSX } from 'react';
 import { NodeToolbar, Position, useReactFlow } from '@xyflow/react';
 import { useMindMapStore } from '../state/stores.js';
+import { useDraggableToolbar } from '../hooks/useDraggableToolbar.js';
 import { ColorPicker } from './ColorPicker.js';
 
 interface TextEditingToolbarProps {
@@ -44,6 +45,7 @@ export function TextEditingToolbar({
   const setNodeFontSize = useMindMapStore((s) => s.setNodeFontSize);
   const setNodeFontFamily = useMindMapStore((s) => s.setNodeFontFamily);
   const { setNodes } = useReactFlow();
+  const { offset, dragHandleProps } = useDraggableToolbar(nodeId);
 
   const effectiveFont = fontSize ?? FONT_DEFAULT;
   const [fontDraft, setFontDraft] = useState<string>(
@@ -163,6 +165,7 @@ export function TextEditingToolbar({
     <NodeToolbar nodeId={nodeId} isVisible position={Position.Top} align="start" offset={8}>
       <div
         className="node-toolbar text-editing-toolbar nodrag nopan"
+        style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
         onDoubleClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => {
           // Prevent focus from leaving the textarea when clicking buttons.
@@ -172,6 +175,15 @@ export function TextEditingToolbar({
           e.stopPropagation();
         }}
       >
+        <button
+          type="button"
+          className="node-toolbar__drag-handle"
+          title="Move toolbar"
+          aria-label="Move toolbar"
+          {...dragHandleProps}
+        >
+          ⋮⋮
+        </button>
         {/* Bold / Italic */}
         <div className="node-toolbar__group" role="group" aria-label="Style">
           <button

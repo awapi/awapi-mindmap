@@ -3,6 +3,7 @@ import type { JSX } from 'react';
 import { NodeToolbar, Position, useReactFlow } from '@xyflow/react';
 import { useMindMapStore } from '../state/stores.js';
 import type { NodeShape } from '../types/mindmap.js';
+import { useDraggableToolbar } from '../hooks/useDraggableToolbar.js';
 import { ColorPicker } from './ColorPicker.js';
 
 interface NodeFormattingToolbarProps {
@@ -70,6 +71,8 @@ export function NodeFormattingToolbar({
   const setNodeFontSize = useMindMapStore((s) => s.setNodeFontSize);
   const setNodeTextAlign = useMindMapStore((s) => s.setNodeTextAlign);
   const { setNodes } = useReactFlow();
+  const selectionKey = nodeIds.join(',');
+  const { offset, dragHandleProps } = useDraggableToolbar(selectionKey);
 
   const idSet = new Set(nodeIds);
 
@@ -134,9 +137,19 @@ export function NodeFormattingToolbar({
     <NodeToolbar nodeId={nodeIds} isVisible position={Position.Top} align="start" offset={48}>
       <div
         className="node-toolbar nodrag nopan"
+        style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
         onDoubleClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
       >
+        <button
+          type="button"
+          className="node-toolbar__drag-handle"
+          title="Move toolbar"
+          aria-label="Move toolbar"
+          {...dragHandleProps}
+        >
+          ⋮⋮
+        </button>
         <div className="node-toolbar__group" role="group" aria-label="Shape">
           {SHAPE_OPTIONS.map((opt) => (
             <button
