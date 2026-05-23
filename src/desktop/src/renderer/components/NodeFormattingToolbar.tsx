@@ -13,6 +13,8 @@ interface NodeFormattingToolbarProps {
   currentShape: NodeShape | undefined;
   /** Shared fill colour across all selected nodes, or `undefined` if mixed. */
   currentColor?: string;
+  /** Shared border colour across all selected nodes, or `undefined` if mixed. */
+  currentBorderColor?: string;
   /** Shared font size across all selected nodes, or `undefined` if mixed. */
   currentFontSize?: number;
   /** Shared text alignment across all selected nodes, or `undefined` if mixed. */
@@ -34,6 +36,7 @@ const FONT_MIN = 6;
 const FONT_MAX = 96;
 const FONT_DEFAULT = 10;
 const FONT_STEP = 2;
+const NO_FILL_COLOR = 'transparent';
 
 const clampFont = (n: number) => Math.max(FONT_MIN, Math.min(FONT_MAX, Math.round(n)));
 
@@ -62,12 +65,14 @@ export function NodeFormattingToolbar({
   nodeIds,
   currentShape,
   currentColor,
+  currentBorderColor,
   currentFontSize,
   currentTextAlign,
   allTextShape,
 }: NodeFormattingToolbarProps): JSX.Element | null {
   const setNodeShape = useMindMapStore((s) => s.setNodeShape);
   const setNodeColor = useMindMapStore((s) => s.setNodeColor);
+  const setNodeBorderColor = useMindMapStore((s) => s.setNodeBorderColor);
   const setNodeFontSize = useMindMapStore((s) => s.setNodeFontSize);
   const setNodeTextAlign = useMindMapStore((s) => s.setNodeTextAlign);
   const { setNodes } = useReactFlow();
@@ -87,6 +92,13 @@ export function NodeFormattingToolbar({
   const applyColor = (color: string | undefined) => {
     setNodeColor(nodeIds, color);
     setNodes((nds) => nds.map((n) => (idSet.has(n.id) ? { ...n, data: { ...n.data, color } } : n)));
+  };
+
+  const applyBorderColor = (borderColor: string | undefined) => {
+    setNodeBorderColor(nodeIds, borderColor);
+    setNodes((nds) =>
+      nds.map((n) => (idSet.has(n.id) ? { ...n, data: { ...n.data, borderColor } } : n)),
+    );
   };
 
   const applyFontSize = (size: number) => {
@@ -139,7 +151,9 @@ export function NodeFormattingToolbar({
         className="node-toolbar nodrag nopan"
         style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
         onDoubleClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
@@ -170,6 +184,14 @@ export function NodeFormattingToolbar({
           value={currentColor}
           onChange={applyColor}
           title="Node fill colour"
+          allowReset
+          noColorValue={NO_FILL_COLOR}
+        />
+        <ColorPicker
+          value={currentBorderColor}
+          onChange={applyBorderColor}
+          label="□"
+          title="Node border colour"
           allowReset
         />
 

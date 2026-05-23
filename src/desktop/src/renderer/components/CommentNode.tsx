@@ -11,6 +11,7 @@ export function CommentNode({ id, data, selected }: NodeProps): JSX.Element {
   const [draft, setDraft] = useState(String(data.label ?? ''));
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const color = data.color as string | undefined;
+  const borderColor = data.borderColor as string | undefined;
   const textColor = data.textColor as string | undefined;
   const fontSize = data.fontSize as number | undefined;
 
@@ -77,6 +78,7 @@ export function CommentNode({ id, data, selected }: NodeProps): JSX.Element {
         className="comment-node__bubble"
         style={{
           ...(color ? { background: color } : {}),
+          ...(borderColor ? { ['--node-border-color' as string]: borderColor, borderColor } : {}),
           ...(textColor ? { color: textColor } : {}),
           ...(fontSize != null ? { fontSize } : {}),
         }}

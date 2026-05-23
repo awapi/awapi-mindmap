@@ -49,6 +49,7 @@ export interface AwapiApi {
   onMenuSaveAs: (handler: (event: IpcRendererEvent) => void) => () => void;
   onMenuOpenRecent: (handler: (event: IpcRendererEvent, path: string) => void) => () => void;
   onMenuSaveAndClose: (handler: (event: IpcRendererEvent) => void) => () => void;
+  onMenuSelectAll: (handler: (event: IpcRendererEvent) => void) => () => void;
 
   // Export menu events
   onMenuExportPng: (handler: (event: IpcRendererEvent) => void) => () => void;

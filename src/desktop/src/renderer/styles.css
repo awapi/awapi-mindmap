@@ -89,6 +89,20 @@ body,
   transition: opacity 0.15s;
 }
 
+.toolbar-btn--icon {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toolbar-btn--icon svg {
+  width: 16px;
+  height: 16px;
+}
+
 .toolbar-btn:hover:not(:disabled) {
   opacity: 0.8;
 }
@@ -358,7 +372,7 @@ body,
 .editable-node {
   background: var(--node-bg);
   color: var(--node-text);
-  border: 1px solid var(--border);
+  border: 1px solid var(--node-border-color, var(--border));
   border-radius: 6px;
   padding: 8px 14px;
   font-size: 10px;
@@ -514,7 +528,8 @@ body,
   border: none;
   box-shadow: none;
   clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-  filter: drop-shadow(0 0 1px var(--border)) drop-shadow(0 0 1px var(--border));
+  filter: drop-shadow(0 0 1px var(--node-border-color, var(--border)))
+    drop-shadow(0 0 1px var(--node-border-color, var(--border)));
   min-width: 48px;
   min-height: 36px;
   /* Extra horizontal padding so text clears the clipped corners */
@@ -878,8 +893,11 @@ body,
 
 .edge-toolbar {
   position: absolute;
-  transform: translate(-50%, calc(-100% - 32px)) translate(var(--toolbar-offset-x, 0), var(--toolbar-offset-y, 0)) scale(var(--zoom-inv, 1));
+  transform: translate(-50%, calc(-100% - 32px))
+    translate(var(--toolbar-offset-x, 0), var(--toolbar-offset-y, 0)) scale(var(--zoom-inv, 1));
   transform-origin: bottom center;
+  pointer-events: all;
+  z-index: 20;
 }
 
 .node-toolbar__group {
@@ -1058,7 +1076,9 @@ body,
   cursor: pointer;
   color: var(--text);
   line-height: 1;
-  transition: background 0.1s, border-color 0.1s;
+  transition:
+    background 0.1s,
+    border-color 0.1s;
 }
 
 .color-picker__btn:hover,
@@ -1444,6 +1464,7 @@ body,
   box-sizing: border-box;
   /* dog-ear fold: top-right corner clipped */
   clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
+  border: 1px solid var(--node-border-color, var(--border));
   padding: 8px 8px 6px;
   font-size: 11px;
   line-height: 1.45;
@@ -1507,7 +1528,7 @@ body,
 
 .comment-node__bubble {
   background: var(--surface);
-  border: 1.5px solid var(--accent);
+  border: 1.5px solid var(--node-border-color, var(--accent));
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 11px;
@@ -1531,7 +1552,7 @@ body,
   height: 0;
   border-left: 8px solid transparent;
   border-right: 0 solid transparent;
-  border-top: 8px solid var(--accent);
+  border-top: 8px solid var(--node-border-color, var(--accent));
   margin-left: 14px;
 }
 

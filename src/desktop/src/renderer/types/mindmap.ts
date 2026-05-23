@@ -17,6 +17,8 @@ export interface MindMapNode {
   position: { x: number; y: number };
   /** Optional colour override (CSS colour string). */
   color?: string;
+  /** Optional border colour override (CSS colour string). */
+  borderColor?: string;
   /** Visual shape. Defaults to 'rectangle'. */
   shape?: NodeShape;
   /** Explicit pixel dimensions set by the user via resize handles. */
@@ -44,6 +46,8 @@ export interface MindMapNode {
 
 export type EdgeStyle = 'default' | 'straight' | 'step' | 'smoothstep';
 
+export const DEFAULT_EDGE_COLOR = '#b1b1b7';
+
 /** Arrow marker style at an edge endpoint. */
 export type EdgeMarker = 'none' | 'arrow' | 'arrowclosed';
 
@@ -55,7 +59,7 @@ export interface MindMapEdge {
   targetHandle?: string;
   /** Visual style of the edge. Defaults to 'default' (bezier). */
   edgeStyle?: EdgeStyle;
-  /** Stroke colour (CSS colour string). Defaults to the theme edge colour. */
+  /** Stroke colour (CSS colour string). Defaults to DEFAULT_EDGE_COLOR. */
   strokeColor?: string;
   /** Stroke width in pixels. Defaults to 1.5. */
   strokeWidth?: number;

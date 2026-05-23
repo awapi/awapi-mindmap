@@ -254,6 +254,20 @@ describe('setNodeColor', () => {
   });
 });
 
+describe('setNodeBorderColor', () => {
+  it('sets and clears node border color', () => {
+    const id = useMindMapStore.getState().mindMap!.nodes[0].id;
+    useMindMapStore.getState().setNodeBorderColor([id], '#00ff00');
+    expect(useMindMapStore.getState().mindMap!.nodes.find((n) => n.id === id)!.borderColor).toBe(
+      '#00ff00',
+    );
+    useMindMapStore.getState().setNodeBorderColor([id], undefined);
+    expect(
+      useMindMapStore.getState().mindMap!.nodes.find((n) => n.id === id)!.borderColor,
+    ).toBeUndefined();
+  });
+});
+
 describe('setEdgeStyle', () => {
   it('updates the edge style', () => {
     const rootId = useMindMapStore.getState().mindMap!.nodes[0].id;

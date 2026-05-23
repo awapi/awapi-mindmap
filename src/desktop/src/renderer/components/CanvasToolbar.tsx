@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import type { JSX } from 'react';
-import type { EdgeMarker, EdgeStyle, NodeShape } from '../types/mindmap.js';
+import {
+  DEFAULT_EDGE_COLOR,
+  type EdgeMarker,
+  type EdgeStyle,
+  type NodeShape,
+} from '../types/mindmap.js';
 import { ColorPicker } from './ColorPicker.js';
 
 export type ActiveTool = 'select' | 'sticky' | 'comment';
@@ -9,10 +14,11 @@ export type ExportType = 'png' | 'svg' | 'text' | 'markdown';
 export interface DefaultStyleSettings {
   nodeShape: NodeShape;
   nodeColor?: string;
+  nodeBorderColor?: string;
   nodeTextColor?: string;
   nodeFontSize: number;
   edgeStyle: EdgeStyle;
-  edgeColor?: string;
+  edgeColor: string;
   edgeWidth: number;
   edgeMarkerEnd: EdgeMarker;
 }
@@ -30,6 +36,7 @@ interface Props {
 
 interface DefaultStylesToolbarProps {
   defaultStyles: DefaultStyleSettings;
+  effectiveNodeColor?: string;
   onDefaultStylesChange: (styles: DefaultStyleSettings) => void;
 }
 
@@ -203,6 +210,8 @@ const EDGE_MARKERS: Array<{ value: EdgeMarker; label: string; glyph: string }> =
   { value: 'arrowclosed', label: 'Filled arrow', glyph: '➤' },
 ];
 
+const NO_FILL_COLOR = 'transparent';
+
 function clampNumber(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
@@ -284,6 +293,7 @@ function IconDropdown<T extends string>({
 
 export function DefaultStylesToolbar({
   defaultStyles,
+  effectiveNodeColor,
   onDefaultStylesChange,
 }: DefaultStylesToolbarProps): JSX.Element {
   const updateDefaults = (patch: Partial<DefaultStyleSettings>) => {
@@ -301,9 +311,17 @@ export function DefaultStylesToolbar({
         onChange={(nodeShape) => updateDefaults({ nodeShape })}
       />
       <ColorPicker
-        value={defaultStyles.nodeColor}
+        value={defaultStyles.nodeColor ?? effectiveNodeColor}
         onChange={(nodeColor) => updateDefaults({ nodeColor })}
         title="Default node fill colour"
+        allowReset
+        noColorValue={NO_FILL_COLOR}
+      />
+      <ColorPicker
+        value={defaultStyles.nodeBorderColor}
+        onChange={(nodeBorderColor) => updateDefaults({ nodeBorderColor })}
+        label="□"
+        title="Default node border colour"
         allowReset
       />
       <ColorPicker
@@ -359,9 +377,9 @@ export function DefaultStylesToolbar({
       />
       <ColorPicker
         value={defaultStyles.edgeColor}
-        onChange={(edgeColor) => updateDefaults({ edgeColor })}
+        onChange={(edgeColor) => updateDefaults({ edgeColor: edgeColor ?? DEFAULT_EDGE_COLOR })}
         title="Default line colour"
-        allowReset
+        allowReset={false}
       />
       <label
         className="top-defaults-toolbar__field top-defaults-toolbar__field--number"
@@ -373,7 +391,9 @@ export function DefaultStylesToolbar({
           className="top-defaults-toolbar__btn top-defaults-toolbar__font"
           title="Decrease default line width"
           disabled={defaultStyles.edgeWidth <= 1}
-          onClick={() => updateDefaults({ edgeWidth: clampNumber(defaultStyles.edgeWidth - 0.5, 1, 12) })}
+          onClick={() =>
+            updateDefaults({ edgeWidth: clampNumber(defaultStyles.edgeWidth - 0.5, 1, 12) })
+          }
         >
           −
         </button>
@@ -395,7 +415,9 @@ export function DefaultStylesToolbar({
           className="top-defaults-toolbar__btn top-defaults-toolbar__font"
           title="Increase default line width"
           disabled={defaultStyles.edgeWidth >= 12}
-          onClick={() => updateDefaults({ edgeWidth: clampNumber(defaultStyles.edgeWidth + 0.5, 1, 12) })}
+          onClick={() =>
+            updateDefaults({ edgeWidth: clampNumber(defaultStyles.edgeWidth + 0.5, 1, 12) })
+          }
         >
           +
         </button>

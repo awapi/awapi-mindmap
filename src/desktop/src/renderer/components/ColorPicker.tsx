@@ -20,8 +20,16 @@ const THEME_COLORS: string[][] = [
 ];
 
 const STANDARD_COLORS: string[] = [
-  '#c00000', '#ff0000', '#ffc000', '#ffff00', '#92d050',
-  '#00b050', '#00b0f0', '#0070c0', '#002060', '#7030a0',
+  '#c00000',
+  '#ff0000',
+  '#ffc000',
+  '#ffff00',
+  '#92d050',
+  '#00b050',
+  '#00b0f0',
+  '#0070c0',
+  '#002060',
+  '#7030a0',
 ];
 
 interface ColorPickerProps {
@@ -37,6 +45,8 @@ interface ColorPickerProps {
   title?: string;
   /** When `true` (default) a "No Color" option is shown at the bottom of the panel. */
   allowReset?: boolean;
+  /** Value emitted by "No Color". Defaults to `undefined`; shape fills use `transparent`. */
+  noColorValue?: string;
 }
 
 export function ColorPicker({
@@ -45,6 +55,7 @@ export function ColorPicker({
   label,
   title,
   allowReset = true,
+  noColorValue,
 }: ColorPickerProps): JSX.Element {
   const [open, setOpen] = useState(false);
   const [panelPos, setPanelPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
@@ -83,13 +94,13 @@ export function ColorPicker({
   /** Open the OS-native colour picker without closing the panel. */
   const openNativePicker = () => {
     if (colorInputRef.current) {
-      colorInputRef.current.value = value ?? '#ffffff';
+      colorInputRef.current.value = isNone ? '#ffffff' : value!;
       colorInputRef.current.click();
     }
   };
 
   const displayColor = value ?? 'transparent';
-  const isNone = !value;
+  const isNone = !value || value === noColorValue;
 
   const panel = (
     <div
@@ -97,7 +108,10 @@ export function ColorPicker({
       className="color-picker__panel"
       style={{ top: panelPos.top, left: panelPos.left }}
       // Prevent focus loss from contenteditable when interacting with the panel.
-      onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
       onClick={(e) => e.stopPropagation()}
     >
       <div className="color-picker__section-label">Theme Colors</div>
@@ -148,7 +162,11 @@ export function ColorPicker({
       </button>
 
       {allowReset && (
-        <button type="button" className="color-picker__action-btn" onClick={() => pick(undefined)}>
+        <button
+          type="button"
+          className="color-picker__action-btn"
+          onClick={() => pick(noColorValue)}
+        >
           <span className="color-picker__action-preview color-picker__action-preview--none">⊘</span>
           No Color
         </button>
@@ -159,7 +177,7 @@ export function ColorPicker({
         ref={colorInputRef}
         type="color"
         className="color-picker__native-input"
-        defaultValue={value ?? '#ffffff'}
+        defaultValue={isNone ? '#ffffff' : value}
         onChange={(e) => onChange(e.target.value)}
       />
     </div>
@@ -198,7 +216,9 @@ export function ColorPicker({
             }}
           />
         )}
-        <span className="color-picker__arrow" aria-hidden="true">▾</span>
+        <span className="color-picker__arrow" aria-hidden="true">
+          ▾
+        </span>
       </button>
 
       {open && createPortal(panel, document.body)}

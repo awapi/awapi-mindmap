@@ -44,6 +44,7 @@ export const IpcChannel = {
   MenuSaveAs: 'menu:saveAs',
   MenuOpenRecent: 'menu:openRecent',
   MenuSaveAndClose: 'menu:saveAndClose',
+  MenuSelectAll: 'menu:selectAll',
 
   // Export menu events (main → renderer)
   MenuExportPng: 'menu:exportPng',

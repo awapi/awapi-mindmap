@@ -18,6 +18,7 @@ export function EditableNode({ id, data, selected }: NodeProps): JSX.Element {
   const shape: NodeShape = (data.shape as NodeShape | undefined) ?? 'rectangle';
   const textAlign = (data.textAlign as 'left' | 'center' | 'right' | undefined) ?? 'center';
   const color = data.color as string | undefined;
+  const borderColor = data.borderColor as string | undefined;
   const textColor = data.textColor as string | undefined;
   const fontFamily = data.fontFamily as string | undefined;
   const fontWeight = data.fontWeight as 'normal' | 'bold' | undefined;
@@ -164,6 +165,9 @@ export function EditableNode({ id, data, selected }: NodeProps): JSX.Element {
           ...(fontFamily ? { fontFamily } : {}),
           ...(fontWeight ? { fontWeight } : {}),
           ...(fontStyle ? { fontStyle } : {}),
+          ...(borderColor && shape !== 'text'
+            ? { ['--node-border-color' as string]: borderColor, borderColor }
+            : {}),
           ...(shape === 'text'
             ? { ...(textColor ? { color: textColor } : {}) }
             : {

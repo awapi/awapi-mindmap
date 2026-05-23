@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { JSX } from 'react';
-import { ViewportPortal, useReactFlow, MarkerType, type EdgeMarkerType } from '@xyflow/react';
+import { EdgeLabelRenderer, useReactFlow, MarkerType, type EdgeMarkerType } from '@xyflow/react';
 import { useMindMapStore } from '../state/stores.js';
 import type { EdgeMarker, EdgeStyle } from '../types/mindmap.js';
 import { useDraggableToolbar } from '../hooks/useDraggableToolbar.js';
@@ -267,7 +267,7 @@ export function EdgeFormattingToolbar({
   if (edgeIds.length === 0 || !anchor) return null;
 
   return (
-    <ViewportPortal>
+    <EdgeLabelRenderer>
       <div
         className="node-toolbar edge-toolbar nodrag nopan"
         style={
@@ -279,7 +279,9 @@ export function EdgeFormattingToolbar({
           } as React.CSSProperties
         }
         onDoubleClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
@@ -305,7 +307,7 @@ export function EdgeFormattingToolbar({
           value={currentColor}
           onChange={applyColor}
           title="Edge colour"
-          allowReset
+          allowReset={false}
         />
 
         <div className="node-toolbar__divider" />
@@ -386,6 +388,6 @@ export function EdgeFormattingToolbar({
           />
         </div>
       </div>
-    </ViewportPortal>
+    </EdgeLabelRenderer>
   );
 }

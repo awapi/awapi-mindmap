@@ -38,6 +38,7 @@ import { toPlainText, toMarkdown } from '../utils/export.js';
 import type { ActiveTool, DefaultStyleSettings, ExportType } from './CanvasToolbar.js';
 import type { ContextMenuAction } from './ContextMenu.js';
 import type { MindMapNode, MindMapEdge, NodeShape, EdgeMarker } from '../types/mindmap.js';
+import { DEFAULT_EDGE_COLOR } from '../types/mindmap.js';
 import { nanoid } from '../utils/nanoid.js';
 
 // Defined outside component to prevent nodeTypes object from being re-created on every render
@@ -46,6 +47,55 @@ const NODE_TYPES = {
   stickyNote: StickyNote,
   commentNode: CommentNode,
 };
+
+const DEFAULT_STICKY_COLOR = '#fef3c7';
+const DEFAULT_NODE_COLOR_BY_THEME = {
+  dark: '#0f3460',
+  light: '#dde8ff',
+} as const;
+
+function effectiveNodeFillColor(data: Node['data'], theme: 'dark' | 'light'): string | undefined {
+  const shape = (data.shape as NodeShape | undefined) ?? 'rectangle';
+  if (shape === 'text') return undefined;
+  return (
+    (data.color as string | undefined) ??
+    (shape === 'sticky' ? DEFAULT_STICKY_COLOR : DEFAULT_NODE_COLOR_BY_THEME[theme])
+  );
+}
+
+function IconUndo(): JSX.Element {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M9 14 L4 9 L9 4" />
+      <path d="M4 9 H15 A5 5 0 0 1 15 19 H11" />
+    </svg>
+  );
+}
+
+function IconRedo(): JSX.Element {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M15 14 L20 9 L15 4" />
+      <path d="M20 9 H9 A5 5 0 0 0 9 19 H13" />
+    </svg>
+  );
+}
 
 function toFlowNode(n: MindMapNode): Node {
   const shape = n.shape ?? 'rectangle';
@@ -93,6 +143,7 @@ function toFlowNode(n: MindMapNode): Node {
       fontSize: n.fontSize,
       textAlign: n.textAlign,
       color: n.color,
+      borderColor: n.borderColor,
       textColor: n.textColor,
       fontFamily: n.fontFamily,
       fontWeight: n.fontWeight,
@@ -111,8 +162,7 @@ function markerToRf(marker: EdgeMarker | undefined): EdgeMarkerType | undefined 
 function toFlowEdge(e: MindMapEdge): Edge {
   const markerEnd = markerToRf(e.markerEnd ?? 'arrowclosed');
   const markerStart = markerToRf(e.markerStart);
-  const style: React.CSSProperties = {};
-  if (e.strokeColor) style.stroke = e.strokeColor;
+  const style: React.CSSProperties = { stroke: e.strokeColor ?? DEFAULT_EDGE_COLOR };
   if (e.strokeWidth != null) style.strokeWidth = e.strokeWidth;
   return {
     id: e.id,
@@ -136,6 +186,7 @@ function withDefaultNodeStyle(
     ...node,
     shape,
     color: defaults.nodeColor,
+    borderColor: defaults.nodeBorderColor,
     textColor: defaults.nodeTextColor,
     fontSize: defaults.nodeFontSize,
   };
@@ -183,6 +234,30 @@ function facingTargetHandle(srcNode: Node, tgtNode: Node): string {
   return dy > 0 ? 'bottom-t' : 'top-t';
 }
 
+function isTextEditingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+}
+
+function selectFocusedText(): boolean {
+  const active = document.activeElement;
+  if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) {
+    active.select();
+    return true;
+  }
+
+  if (active instanceof HTMLElement && active.isContentEditable) {
+    const selection = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(active);
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    return true;
+  }
+
+  return false;
+}
+
 // CanvasFlow is a child of ReactFlowProvider so it can use useReactFlow()
 function CanvasFlow(): JSX.Element {
   const mindMap = useMindMapStore((s) => s.mindMap);
@@ -221,6 +296,7 @@ function CanvasFlow(): JSX.Element {
     nodeShape: 'rectangle',
     nodeFontSize: 10,
     edgeStyle: 'default',
+    edgeColor: DEFAULT_EDGE_COLOR,
     edgeWidth: 1.5,
     edgeMarkerEnd: 'arrowclosed',
   });
@@ -428,18 +504,14 @@ function CanvasFlow(): JSX.Element {
       await new Promise<void>((resolve) => setTimeout(resolve, 80));
 
       // Hide UI chrome that shouldn't appear in the export
-      const background = rendererEl.querySelector(
-        '.react-flow__background',
-      ) as HTMLElement | null;
+      const background = rendererEl.querySelector('.react-flow__background') as HTMLElement | null;
       const controls = wrapperRef.current?.querySelector(
         '.react-flow__controls',
       ) as HTMLElement | null;
       const minimap = wrapperRef.current?.querySelector(
         '.react-flow__minimap',
       ) as HTMLElement | null;
-      const toolbar = wrapperRef.current?.querySelector(
-        '.float-toolbar',
-      ) as HTMLElement | null;
+      const toolbar = wrapperRef.current?.querySelector('.float-toolbar') as HTMLElement | null;
       if (background) background.style.visibility = 'hidden';
       if (controls) controls.style.visibility = 'hidden';
       if (minimap) minimap.style.visibility = 'hidden';
@@ -520,8 +592,7 @@ function CanvasFlow(): JSX.Element {
   // Global keyboard shortcuts: Fit to View (Ctrl+Shift+F) and Auto Layout (Ctrl+Shift+L)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement).tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (isTextEditingTarget(e.target)) return;
       const isMeta = e.metaKey || e.ctrlKey;
       if (!isMeta || !e.shiftKey) return;
       if (e.key === 'f' || e.key === 'F') {
@@ -624,14 +695,33 @@ function CanvasFlow(): JSX.Element {
     [activeTool, defaultStyles, screenToFlowPosition, addNodeAction, setNodes],
   );
 
+  const selectAllCanvasItems = useCallback(() => {
+    setNodes((nds) => nds.map((n) => (n.selected ? n : { ...n, selected: true })));
+    setEdges((eds) => eds.map((ed) => (ed.selected ? ed : { ...ed, selected: true })));
+  }, [setNodes, setEdges]);
+
+  const handleSelectAll = useCallback(() => {
+    if (selectFocusedText()) return;
+    selectAllCanvasItems();
+  }, [selectAllCanvasItems]);
+
+  useEffect(() => {
+    return window.awapi.onMenuSelectAll(handleSelectAll);
+  }, [handleSelectAll]);
+
   // --- Keyboard handler: Delete/Backspace for selection; Cmd+Z / Cmd+Shift+Z for undo/redo ---
 
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      const tag = (e.target as HTMLElement).tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (isTextEditingTarget(e.target)) return;
 
       const isMeta = e.metaKey || e.ctrlKey;
+
+      if (isMeta && (e.key === 'a' || e.key === 'A')) {
+        e.preventDefault();
+        selectAllCanvasItems();
+        return;
+      }
 
       // Copy / Cut / Paste --------------------------------------------------
       if (isMeta && (e.key === 'c' || e.key === 'C' || e.key === 'x' || e.key === 'X')) {
@@ -690,7 +780,10 @@ function CanvasFlow(): JSX.Element {
           ...nds.map((n) => (n.selected ? { ...n, selected: false } : n)),
           ...newNodes.map((n) => ({ ...toFlowNode(n), selected: true })),
         ]);
-        setEdges((eds) => [...eds, ...newEdges.map(toFlowEdge)]);
+        setEdges((eds) => [
+          ...eds.map((ed) => (ed.selected ? { ...ed, selected: false } : ed)),
+          ...newEdges.map((ed) => ({ ...toFlowEdge(ed), selected: true })),
+        ]);
         return;
       }
 
@@ -728,7 +821,16 @@ function CanvasFlow(): JSX.Element {
         }
       }
     },
-    [nodes, edges, deleteNodesAction, deleteEdgesAction, addNodesAction, setNodes, setEdges],
+    [
+      nodes,
+      edges,
+      deleteNodesAction,
+      deleteEdgesAction,
+      addNodesAction,
+      setNodes,
+      setEdges,
+      selectAllCanvasItems,
+    ],
   );
 
   // --- Context menu ---
@@ -996,6 +1098,7 @@ function CanvasFlow(): JSX.Element {
         nodeIds: [] as string[],
         shape: undefined as NodeShape | undefined,
         fontSize: undefined as number | undefined,
+        borderColor: undefined as string | undefined,
         textAlign: undefined as 'left' | 'center' | 'right' | undefined,
         allTextShape: false,
       };
@@ -1003,7 +1106,8 @@ function CanvasFlow(): JSX.Element {
     const shapes = new Set(
       selected.map((n) => (n.data.shape as NodeShape | undefined) ?? 'rectangle'),
     );
-    const colors = new Set(selected.map((n) => n.data.color as string | undefined));
+    const colors = new Set(selected.map((n) => effectiveNodeFillColor(n.data, theme)));
+    const borderColors = new Set(selected.map((n) => n.data.borderColor as string | undefined));
     const fontSizes = new Set(selected.map((n) => n.data.fontSize as number | undefined));
     const aligns = new Set(
       selected.map(
@@ -1014,11 +1118,13 @@ function CanvasFlow(): JSX.Element {
       nodeIds: selected.map((n) => n.id),
       shape: shapes.size === 1 ? ([...shapes][0] as NodeShape) : undefined,
       color: colors.size === 1 ? ([...colors][0] as string | undefined) : undefined,
+      borderColor:
+        borderColors.size === 1 ? ([...borderColors][0] as string | undefined) : undefined,
       fontSize: fontSizes.size === 1 ? ([...fontSizes][0] as number | undefined) : undefined,
       textAlign: aligns.size === 1 ? ([...aligns][0] as 'left' | 'center' | 'right') : undefined,
       allTextShape: shapes.size === 1 && shapes.has('text'),
     };
-  }, [nodes]);
+  }, [nodes, theme]);
 
   // Hide the toolbar while a single node is being edited; the TextEditingToolbar
   // inside EditableNode handles text-specific formatting during editing.
@@ -1044,7 +1150,7 @@ function CanvasFlow(): JSX.Element {
     const selectedIds = new Set(selected.map((e) => e.id));
     const persisted = map?.edges.filter((e) => selectedIds.has(e.id)) ?? [];
     const styles = new Set(persisted.map((e) => e.edgeStyle ?? 'default'));
-    const colors = new Set(persisted.map((e) => e.strokeColor));
+    const colors = new Set(persisted.map((e) => e.strokeColor ?? DEFAULT_EDGE_COLOR));
     const widths = new Set(persisted.map((e) => e.strokeWidth));
     const ms = new Set(persisted.map((e) => e.markerStart ?? 'none'));
     const me = new Set(persisted.map((e) => e.markerEnd ?? 'arrowclosed'));
@@ -1065,24 +1171,30 @@ function CanvasFlow(): JSX.Element {
     <div className="canvas-wrapper" ref={wrapperRef} onKeyDown={onKeyDown} tabIndex={0}>
       <div className="canvas-toolbar" data-tool={activeTool}>
         <button
-          className="toolbar-btn"
+          className="toolbar-btn toolbar-btn--icon"
           title="Undo (⌘Z)"
+          aria-label="Undo"
           disabled={historyLength === 0}
           onClick={undo}
         >
-          ↩ Undo
+          <IconUndo />
         </button>
         <button
-          className="toolbar-btn"
+          className="toolbar-btn toolbar-btn--icon"
           title="Redo (⌘⇧Z)"
+          aria-label="Redo"
           disabled={futureLength === 0}
           onClick={redo}
         >
-          ↪ Redo
+          <IconRedo />
         </button>
         <div className="toolbar-divider" />
         <DefaultStylesToolbar
           defaultStyles={defaultStyles}
+          effectiveNodeColor={effectiveNodeFillColor(
+            { shape: defaultStyles.nodeShape, color: defaultStyles.nodeColor },
+            theme,
+          )}
           onDefaultStylesChange={setDefaultStyles}
         />
         <div className="toolbar-spacer" />
@@ -1137,6 +1249,7 @@ function CanvasFlow(): JSX.Element {
                 nodeIds={formattingSelection.nodeIds}
                 currentShape={formattingSelection.shape}
                 currentColor={formattingSelection.color}
+                currentBorderColor={formattingSelection.borderColor}
                 currentFontSize={formattingSelection.fontSize}
                 currentTextAlign={formattingSelection.textAlign}
                 allTextShape={formattingSelection.allTextShape}

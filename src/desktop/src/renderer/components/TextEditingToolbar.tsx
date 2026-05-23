@@ -167,6 +167,7 @@ export function TextEditingToolbar({
         className="node-toolbar text-editing-toolbar nodrag nopan"
         style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
         onDoubleClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
         onMouseDown={(e) => {
           // Prevent focus from leaving the textarea when clicking buttons.
           // The <input> and <select> stop propagation themselves so they can
@@ -174,6 +175,7 @@ export function TextEditingToolbar({
           e.preventDefault();
           e.stopPropagation();
         }}
+        onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"

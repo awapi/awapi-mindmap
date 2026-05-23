@@ -69,6 +69,7 @@ export interface MindMapState {
   ) => void;
   setNodeShape: (ids: string[], shape: NodeShape) => void;
   setNodeColor: (ids: string[], color: string | undefined) => void;
+  setNodeBorderColor: (ids: string[], borderColor: string | undefined) => void;
   setNodeFontSize: (ids: string[], fontSize: number | undefined) => void;
   setNodeTextAlign: (ids: string[], textAlign: 'left' | 'center' | 'right' | undefined) => void;
   setNodeTextColor: (ids: string[], textColor: string | undefined) => void;
@@ -358,6 +359,22 @@ export const useMindMapStore = create<MindMapState>()((set) => ({
         mindMap: {
           ...s.mindMap,
           nodes: s.mindMap.nodes.map((n) => (idSet.has(n.id) ? { ...n, color } : n)),
+          updatedAt: new Date().toISOString(),
+        },
+        isDirty: true,
+      };
+    }),
+
+  setNodeBorderColor: (ids, borderColor) =>
+    set((s) => {
+      if (!s.mindMap || ids.length === 0) return {};
+      const idSet = new Set(ids);
+      return {
+        history: pushHistory(s.history, s.mindMap),
+        future: [],
+        mindMap: {
+          ...s.mindMap,
+          nodes: s.mindMap.nodes.map((n) => (idSet.has(n.id) ? { ...n, borderColor } : n)),
           updatedAt: new Date().toISOString(),
         },
         isDirty: true,

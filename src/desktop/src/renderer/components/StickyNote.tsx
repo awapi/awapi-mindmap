@@ -97,7 +97,12 @@ export function StickyNote({ id, data, selected }: NodeProps): JSX.Element {
       setNodes((nds) =>
         nds.map((n) =>
           n.id === id
-            ? { ...n, width: params.width, height: params.height, position: { x: params.x, y: params.y } }
+            ? {
+                ...n,
+                width: params.width,
+                height: params.height,
+                position: { x: params.x, y: params.y },
+              }
             : n,
         ),
       );
@@ -106,6 +111,7 @@ export function StickyNote({ id, data, selected }: NodeProps): JSX.Element {
   );
 
   const bgColor = (data.color as string | undefined) ?? '#fef3c7';
+  const borderColor = data.borderColor as string | undefined;
   const textColor = data.textColor as string | undefined;
   const fontSize = data.fontSize as number | undefined;
 
@@ -137,6 +143,7 @@ export function StickyNote({ id, data, selected }: NodeProps): JSX.Element {
         className={`sticky-note${selected ? ' selected' : ''}${editing ? ' nodrag' : ''}`}
         style={{
           background: bgColor,
+          ...(borderColor ? { ['--node-border-color' as string]: borderColor, borderColor } : {}),
           ...(textColor ? { color: textColor } : {}),
           ...(fontSize != null ? { fontSize } : {}),
         }}
@@ -157,7 +164,9 @@ export function StickyNote({ id, data, selected }: NodeProps): JSX.Element {
             dangerouslySetInnerHTML={{ __html: data.richLabel as string }}
           />
         ) : (
-          <span className="sticky-note__label">{String(data.label || 'Double-click to edit…')}</span>
+          <span className="sticky-note__label">
+            {String(data.label || 'Double-click to edit…')}
+          </span>
         )}
       </div>
     </>

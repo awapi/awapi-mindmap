@@ -263,9 +263,7 @@ async function buildMenu(): Promise<void> {
             {
               label: 'Export as Markdown…',
               click: (_item, win) =>
-                (win as BrowserWindow | undefined)?.webContents.send(
-                  IpcChannel.MenuExportMarkdown,
-                ),
+                (win as BrowserWindow | undefined)?.webContents.send(IpcChannel.MenuExportMarkdown),
             },
           ],
         },
@@ -282,7 +280,13 @@ async function buildMenu(): Promise<void> {
         { role: 'cut' },
         { role: 'copy' },
         { role: 'paste' },
-        { role: 'selectAll' },
+        {
+          label: 'Select All',
+          accelerator: 'CmdOrCtrl+A',
+          click: (_item, win) => {
+            (win as BrowserWindow | undefined)?.webContents.send(IpcChannel.MenuSelectAll);
+          },
+        },
       ],
     },
     {

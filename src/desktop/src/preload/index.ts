@@ -54,6 +54,10 @@ const api: AwapiApi = {
     ipcRenderer.on('menu:saveAndClose', handler);
     return () => ipcRenderer.off('menu:saveAndClose', handler);
   },
+  onMenuSelectAll: (handler) => {
+    ipcRenderer.on('menu:selectAll', handler);
+    return () => ipcRenderer.off('menu:selectAll', handler);
+  },
   onMenuExportPng: (handler) => {
     ipcRenderer.on('menu:exportPng', handler);
     return () => ipcRenderer.off('menu:exportPng', handler);
