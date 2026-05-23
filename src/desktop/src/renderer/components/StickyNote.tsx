@@ -71,8 +71,8 @@ export function StickyNote({ id, data, selected }: NodeProps): JSX.Element {
     >
       <NodeResizer
         isVisible={selected}
-        minWidth={100}
-        minHeight={80}
+        minWidth={60}
+        minHeight={40}
         onResizeEnd={(_e, params) =>
           resizeNode(id, params.width, params.height, { x: params.x, y: params.y })
         }

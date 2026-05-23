@@ -70,8 +70,8 @@ files, dark/light theme, auto-updates from a private GitHub Releases feed.
 - [x] Installers configured for Windows (NSIS `.exe` + `.msi`), macOS (`.dmg` + `.zip`), Linux (`.AppImage` + `.deb`); x64 and arm64
 - [x] Tag-triggered release pipeline publishes to GitHub Releases
 - [x] Code-signing hooks stubbed; first-launch OS warnings documented
-- [ ] Auto-update: app checks on launch, downloads in the background, prompts to restart
-- [ ] App icon added for all platforms
+- [x] Auto-update: app checks on launch, downloads in the background, prompts to restart
+- [x] App icon added for all platforms
 
 ## Phase 9 — Testing
 

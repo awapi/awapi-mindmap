@@ -164,7 +164,7 @@ body,
   border-radius: 6px;
   padding: 8px 14px;
   font-size: 10px;
-  min-width: 80px;
+  min-width: 40px;
   text-align: center;
   cursor: default;
   user-select: none;
@@ -213,8 +213,8 @@ body,
 .editable-node.shape-circle {
   border-radius: 50%;
   /* Let NodeResizer control dimensions; keep a CSS minimum as fallback */
-  min-width: 50px;
-  min-height: 50px;
+  min-width: 24px;
+  min-height: 24px;
   padding: 6px;
 }
 
@@ -297,8 +297,8 @@ body,
 /* ellipse — like circle but free aspect ratio */
 .editable-node.shape-ellipse {
   border-radius: 50%;
-  min-width: 60px;
-  min-height: 40px;
+  min-width: 30px;
+  min-height: 20px;
   padding: 6px;
 }
 
@@ -317,8 +317,8 @@ body,
   box-shadow: none;
   clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
   filter: drop-shadow(0 0 1px var(--border)) drop-shadow(0 0 1px var(--border));
-  min-width: 100px;
-  min-height: 80px;
+  min-width: 48px;
+  min-height: 36px;
   /* Extra horizontal padding so text clears the clipped corners */
   padding: 10px 32px;
 }
@@ -410,7 +410,7 @@ body,
   border-width: calc(1px * var(--zoom-inv, 1)) !important;
 }
 .react-flow__resize-control.line {
-  border-width: calc(1px * var(--zoom-inv, 1)) !important;
+  border-width: calc(0.5px * var(--zoom-inv, 1)) !important;
 }
 
 /* =========================================================================
@@ -624,7 +624,7 @@ body,
 
 .react-flow__resize-control.line {
   border-color: var(--accent);
-  border-width: 1px;
+  border-width: 0.5px;
   opacity: 0.5;
 }
 

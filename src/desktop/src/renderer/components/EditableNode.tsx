@@ -110,24 +110,24 @@ export function EditableNode({ id, data, selected }: NodeProps): JSX.Element {
   // Minimum dimensions per shape
   const minWidth =
     shape === 'circle'
-      ? 50
+      ? 24
       : shape === 'ellipse'
-        ? 60
+        ? 30
         : shape === 'diamond'
-          ? 100
+          ? 48
           : shape === 'text'
-            ? 40
-            : 80;
+            ? 20
+            : 40;
   const minHeight =
     shape === 'circle'
-      ? 50
+      ? 24
       : shape === 'ellipse'
-        ? 40
+        ? 20
         : shape === 'diamond'
-          ? 80
+          ? 36
           : shape === 'text'
-            ? 24
-            : 36;
+            ? 16
+            : 20;
 
   return (
     <>
