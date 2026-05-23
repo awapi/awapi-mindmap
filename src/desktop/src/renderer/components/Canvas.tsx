@@ -947,7 +947,9 @@ function CanvasFlow(): JSX.Element {
   // Aggregate the currently selected editable nodes so a single shared
   // formatting toolbar can apply changes to all of them at once.
   const formattingSelection = useMemo(() => {
-    const selected = nodes.filter((n) => n.selected && n.type === 'editableNode');
+    const selected = nodes.filter(
+      (n) => n.selected && (n.type === 'editableNode' || n.type === 'stickyNote'),
+    );
     if (selected.length === 0) {
       return {
         nodeIds: [] as string[],
@@ -960,6 +962,7 @@ function CanvasFlow(): JSX.Element {
     const shapes = new Set(
       selected.map((n) => (n.data.shape as NodeShape | undefined) ?? 'rectangle'),
     );
+    const colors = new Set(selected.map((n) => n.data.color as string | undefined));
     const fontSizes = new Set(selected.map((n) => n.data.fontSize as number | undefined));
     const aligns = new Set(
       selected.map(
@@ -969,6 +972,7 @@ function CanvasFlow(): JSX.Element {
     return {
       nodeIds: selected.map((n) => n.id),
       shape: shapes.size === 1 ? ([...shapes][0] as NodeShape) : undefined,
+      color: colors.size === 1 ? ([...colors][0] as string | undefined) : undefined,
       fontSize: fontSizes.size === 1 ? ([...fontSizes][0] as number | undefined) : undefined,
       textAlign: aligns.size === 1 ? ([...aligns][0] as 'left' | 'center' | 'right') : undefined,
       allTextShape: shapes.size === 1 && shapes.has('text'),
@@ -1086,6 +1090,7 @@ function CanvasFlow(): JSX.Element {
               <NodeFormattingToolbar
                 nodeIds={formattingSelection.nodeIds}
                 currentShape={formattingSelection.shape}
+                currentColor={formattingSelection.color}
                 currentFontSize={formattingSelection.fontSize}
                 currentTextAlign={formattingSelection.textAlign}
                 allTextShape={formattingSelection.allTextShape}

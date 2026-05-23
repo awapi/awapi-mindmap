@@ -3,12 +3,15 @@ import type { JSX } from 'react';
 import { NodeToolbar, Position, useReactFlow } from '@xyflow/react';
 import { useMindMapStore } from '../state/stores.js';
 import type { NodeShape } from '../types/mindmap.js';
+import { ColorPicker } from './ColorPicker.js';
 
 interface NodeFormattingToolbarProps {
   /** IDs of all selected nodes the toolbar should apply changes to. */
   nodeIds: string[];
   /** Shared shape across all selected nodes, or `undefined` if mixed. */
   currentShape: NodeShape | undefined;
+  /** Shared fill colour across all selected nodes, or `undefined` if mixed. */
+  currentColor?: string;
   /** Shared font size across all selected nodes, or `undefined` if mixed. */
   currentFontSize?: number;
   /** Shared text alignment across all selected nodes, or `undefined` if mixed. */
@@ -22,17 +25,8 @@ const SHAPE_OPTIONS: Array<{ shape: NodeShape; label: string; glyph: string }> =
   { shape: 'circle', label: 'Circle', glyph: '○' },
   { shape: 'ellipse', label: 'Ellipse', glyph: '⬭' },
   { shape: 'diamond', label: 'Diamond', glyph: '◇' },
+  { shape: 'sticky', label: 'Sticky note', glyph: '◰' },
   { shape: 'text', label: 'Text only', glyph: 'T' },
-];
-
-const COLOUR_OPTIONS: Array<{ color: string; title: string }> = [
-  { color: '#e94560', title: 'Red' },
-  { color: '#f5a623', title: 'Orange' },
-  { color: '#f8e71c', title: 'Yellow' },
-  { color: '#7ed321', title: 'Green' },
-  { color: '#4a90e2', title: 'Blue' },
-  { color: '#9b59b6', title: 'Purple' },
-  { color: '#1abc9c', title: 'Teal' },
 ];
 
 const FONT_MIN = 6;
@@ -41,6 +35,10 @@ const FONT_DEFAULT = 10;
 const FONT_STEP = 2;
 
 const clampFont = (n: number) => Math.max(FONT_MIN, Math.min(FONT_MAX, Math.round(n)));
+
+function nodeTypeForShape(shape: NodeShape): 'editableNode' | 'stickyNote' | 'commentNode' {
+  return shape === 'sticky' ? 'stickyNote' : shape === 'comment' ? 'commentNode' : 'editableNode';
+}
 
 function AlignIcon({ align }: { align: 'left' | 'center' | 'right' }): JSX.Element {
   const bars = [
@@ -62,6 +60,7 @@ function AlignIcon({ align }: { align: 'left' | 'center' | 'right' }): JSX.Eleme
 export function NodeFormattingToolbar({
   nodeIds,
   currentShape,
+  currentColor,
   currentFontSize,
   currentTextAlign,
   allTextShape,
@@ -76,7 +75,10 @@ export function NodeFormattingToolbar({
 
   const applyShape = (shape: NodeShape) => {
     setNodeShape(nodeIds, shape);
-    setNodes((nds) => nds.map((n) => (idSet.has(n.id) ? { ...n, data: { ...n.data, shape } } : n)));
+    const type = nodeTypeForShape(shape);
+    setNodes((nds) =>
+      nds.map((n) => (idSet.has(n.id) ? { ...n, type, data: { ...n.data, shape } } : n)),
+    );
   };
 
   const applyColor = (color: string | undefined) => {
@@ -151,26 +153,12 @@ export function NodeFormattingToolbar({
 
         <div className="node-toolbar__divider" />
 
-        <div className="node-toolbar__group" role="group" aria-label="Colour">
-          {COLOUR_OPTIONS.map((opt) => (
-            <button
-              key={opt.color}
-              type="button"
-              className="node-toolbar__swatch"
-              style={{ background: opt.color }}
-              title={opt.title}
-              onClick={() => applyColor(opt.color)}
-            />
-          ))}
-          <button
-            type="button"
-            className="node-toolbar__swatch node-toolbar__swatch--reset"
-            title="Reset colour"
-            onClick={() => applyColor(undefined)}
-          >
-            ⊘
-          </button>
-        </div>
+        <ColorPicker
+          value={currentColor}
+          onChange={applyColor}
+          title="Node fill colour"
+          allowReset
+        />
 
         <div className="node-toolbar__divider" />
 

@@ -344,7 +344,8 @@ body,
    edge endpoints flush with the visible shape edge, with no gap. The visible
    Miro-style dot is rendered by ::after, offset outside the border. Sizes use
    `--zoom-inv` so they stay visually constant at every zoom level. */
-.react-flow__node-editableNode .react-flow__handle {
+.react-flow__node-editableNode .react-flow__handle,
+.react-flow__node-stickyNote .react-flow__handle {
   width: calc(10px * var(--zoom-inv, 1));
   height: calc(10px * var(--zoom-inv, 1));
   background: transparent;
@@ -354,7 +355,8 @@ body,
   transition: opacity 0.15s;
 }
 
-.react-flow__node-editableNode .react-flow__handle::after {
+.react-flow__node-editableNode .react-flow__handle::after,
+.react-flow__node-stickyNote .react-flow__handle::after {
   content: '';
   position: absolute;
   width: 100%;
@@ -368,37 +370,47 @@ body,
 /* Handle wrapper: anchor each side so the handle's inner edge touches the
    node border (centre sits 5px*zoom-inv inside). ::after is shifted further
    out to render the visible dot ~6px outside the border. */
-.react-flow__node-editableNode .react-flow__handle-top {
+.react-flow__node-editableNode .react-flow__handle-top,
+.react-flow__node-stickyNote .react-flow__handle-top {
   transform: translate(-50%, 0);
 }
-.react-flow__node-editableNode .react-flow__handle-top::after {
+.react-flow__node-editableNode .react-flow__handle-top::after,
+.react-flow__node-stickyNote .react-flow__handle-top::after {
   top: calc(-16px * var(--zoom-inv, 1));
   left: 0;
 }
-.react-flow__node-editableNode .react-flow__handle-bottom {
+.react-flow__node-editableNode .react-flow__handle-bottom,
+.react-flow__node-stickyNote .react-flow__handle-bottom {
   transform: translate(-50%, 0);
 }
-.react-flow__node-editableNode .react-flow__handle-bottom::after {
+.react-flow__node-editableNode .react-flow__handle-bottom::after,
+.react-flow__node-stickyNote .react-flow__handle-bottom::after {
   top: calc(16px * var(--zoom-inv, 1));
   left: 0;
 }
-.react-flow__node-editableNode .react-flow__handle-left {
+.react-flow__node-editableNode .react-flow__handle-left,
+.react-flow__node-stickyNote .react-flow__handle-left {
   transform: translate(0, -50%);
 }
-.react-flow__node-editableNode .react-flow__handle-left::after {
+.react-flow__node-editableNode .react-flow__handle-left::after,
+.react-flow__node-stickyNote .react-flow__handle-left::after {
   left: calc(-16px * var(--zoom-inv, 1));
   top: 0;
 }
-.react-flow__node-editableNode .react-flow__handle-right {
+.react-flow__node-editableNode .react-flow__handle-right,
+.react-flow__node-stickyNote .react-flow__handle-right {
   transform: translate(0, -50%);
 }
-.react-flow__node-editableNode .react-flow__handle-right::after {
+.react-flow__node-editableNode .react-flow__handle-right::after,
+.react-flow__node-stickyNote .react-flow__handle-right::after {
   left: calc(16px * var(--zoom-inv, 1));
   top: 0;
 }
 
 .react-flow__node-editableNode:hover .react-flow__handle,
-.react-flow__node-editableNode.selected .react-flow__handle {
+.react-flow__node-editableNode.selected .react-flow__handle,
+.react-flow__node-stickyNote:hover .react-flow__handle,
+.react-flow__node-stickyNote.selected .react-flow__handle {
   opacity: 1;
 }
 
@@ -709,32 +721,186 @@ body,
   font-weight: 600;
 }
 
-.node-toolbar__swatch {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 2px solid transparent;
-  padding: 0;
+/* =========================================================================
+   Color Picker — trigger button + portal dropdown panel
+   ========================================================================= */
+
+.color-picker {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Trigger button */
+.color-picker__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 3px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
   cursor: pointer;
-  transition:
-    transform 0.1s,
-    border-color 0.1s;
+  color: var(--text);
+  line-height: 1;
+  transition: background 0.1s, border-color 0.1s;
+}
+
+.color-picker__btn:hover,
+.color-picker__btn.is-open {
+  background: var(--node-bg);
+  border-color: var(--border);
+}
+
+/* Fill-colour mode: plain circle */
+.color-picker__circle {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  display: inline-block;
   flex-shrink: 0;
 }
 
-.node-toolbar__swatch:hover {
-  transform: scale(1.18);
-  border-color: var(--text);
+/* Text-colour mode: label text + thin coloured bar underneath */
+.color-picker__label-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
 }
 
-.node-toolbar__swatch--reset {
-  background: transparent;
-  border: 1px dashed var(--text-muted);
+.color-picker__label-text {
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.color-picker__label-bar {
+  width: 14px;
+  height: 3px;
+  border-radius: 1.5px;
+  border: 1px solid var(--border);
+}
+
+/* Dropdown arrow glyph */
+.color-picker__arrow {
+  font-size: 8px;
+  opacity: 0.6;
+  line-height: 1;
+}
+
+/* ---- Panel (rendered via React portal at document.body) ---- */
+
+.color-picker__panel {
+  position: fixed;
+  z-index: 9999;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+}
+
+.color-picker__section-label {
+  font-size: 0.6rem;
+  font-weight: 600;
   color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+}
+
+/* 10 columns × 5 rows, laid out row-by-row in the DOM */
+.color-picker__theme-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 16px);
+  grid-template-rows: repeat(5, 16px);
+  gap: 2px;
+  margin-bottom: 6px;
+}
+
+.color-picker__standard-row {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 2px;
+}
+
+/* Individual colour swatch squares */
+.color-picker__swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  border: 1px solid transparent;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+  transition: transform 0.08s;
+}
+
+.color-picker__swatch:hover {
+  transform: scale(1.3);
+  border-color: var(--text);
+  z-index: 1;
+}
+
+.color-picker__swatch.is-selected {
+  border-color: #fff;
+  outline: 1px solid var(--text);
+}
+
+.color-picker__cp-separator {
+  height: 1px;
+  background: var(--border);
+  margin: 6px 0;
+}
+
+/* "More Colors…" and "No Color" buttons */
+.color-picker__action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 4px 4px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text);
+  font-size: 0.75rem;
+  text-align: left;
+}
+
+.color-picker__action-btn:hover {
+  background: var(--node-bg);
+}
+
+.color-picker__action-preview {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.color-picker__action-preview--none {
+  border: 1px dashed var(--text-muted);
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+/* Hidden native <input type="color"> */
+.color-picker__native-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+  padding: 0;
+  border: none;
 }
 
 .node-toolbar__font--small {
@@ -786,21 +952,6 @@ body,
 .node-toolbar__style-btn {
   min-width: 22px;
   font-size: 0.85rem;
-}
-
-/* Text-colour swatches inside the text-editing toolbar get a thin border so
-   the lightest colours (white, light-gray) are still visible. */
-.text-editing-toolbar .node-toolbar__swatch {
-  border: 1px solid var(--border);
-}
-
-.node-toolbar__label {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  padding: 0 2px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 /* =========================================================================
@@ -977,7 +1128,7 @@ body,
   box-sizing: border-box;
   /* dog-ear fold: top-right corner clipped */
   clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
-  padding: 14px 12px 10px;
+  padding: 8px 8px 6px;
   font-size: 11px;
   line-height: 1.45;
   color: #1c1917;
@@ -1004,7 +1155,7 @@ body,
   flex: 1;
 }
 
-.sticky-note__input {
+.sticky-note__editor {
   flex: 1;
   width: 100%;
   background: transparent;
@@ -1018,6 +1169,10 @@ body,
   overflow: hidden;
   padding: 0;
   margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+  cursor: text;
 }
 
 /* =========================================================================

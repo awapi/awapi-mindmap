@@ -3,6 +3,7 @@ import type { JSX } from 'react';
 import { Panel, useReactFlow, MarkerType, type EdgeMarkerType } from '@xyflow/react';
 import { useMindMapStore } from '../state/stores.js';
 import type { EdgeMarker, EdgeStyle } from '../types/mindmap.js';
+import { ColorPicker } from './ColorPicker.js';
 
 interface EdgeFormattingToolbarProps {
   /** IDs of all selected edges the toolbar applies changes to. */
@@ -18,16 +19,6 @@ interface EdgeFormattingToolbarProps {
   /** Shared marker-end across all selected edges, or undefined if mixed. */
   currentMarkerEnd: EdgeMarker | undefined;
 }
-
-const COLOUR_OPTIONS: Array<{ color: string; title: string }> = [
-  { color: '#e94560', title: 'Red' },
-  { color: '#f5a623', title: 'Orange' },
-  { color: '#f8e71c', title: 'Yellow' },
-  { color: '#7ed321', title: 'Green' },
-  { color: '#4a90e2', title: 'Blue' },
-  { color: '#9b59b6', title: 'Purple' },
-  { color: '#1abc9c', title: 'Teal' },
-];
 
 const STYLE_OPTIONS: Array<{ value: EdgeStyle; label: string; glyph: string }> = [
   { value: 'default', label: 'Curved', glyph: '⌒' },
@@ -57,7 +48,7 @@ function markerToRf(marker: EdgeMarker | undefined): EdgeMarkerType | undefined 
 export function EdgeFormattingToolbar({
   edgeIds,
   currentStyle,
-  currentColor: _currentColor,
+  currentColor,
   currentWidth,
   currentMarkerStart,
   currentMarkerEnd,
@@ -182,26 +173,12 @@ export function EdgeFormattingToolbar({
 
         <div className="node-toolbar__divider" />
 
-        <div className="node-toolbar__group" role="group" aria-label="Edge colour">
-          {COLOUR_OPTIONS.map((opt) => (
-            <button
-              key={opt.color}
-              type="button"
-              className="node-toolbar__swatch"
-              style={{ background: opt.color }}
-              title={opt.title}
-              onClick={() => applyColor(opt.color)}
-            />
-          ))}
-          <button
-            type="button"
-            className="node-toolbar__swatch node-toolbar__swatch--reset"
-            title="Reset colour"
-            onClick={() => applyColor(undefined)}
-          >
-            ⊘
-          </button>
-        </div>
+        <ColorPicker
+          value={currentColor}
+          onChange={applyColor}
+          title="Edge colour"
+          allowReset
+        />
 
         <div className="node-toolbar__divider" />
 

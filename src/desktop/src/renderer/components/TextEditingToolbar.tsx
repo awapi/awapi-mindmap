@@ -2,6 +2,7 @@ import { useState, useEffect, type RefObject } from 'react';
 import type { JSX } from 'react';
 import { NodeToolbar, Position, useReactFlow } from '@xyflow/react';
 import { useMindMapStore } from '../state/stores.js';
+import { ColorPicker } from './ColorPicker.js';
 
 interface TextEditingToolbarProps {
   nodeId: string;
@@ -15,20 +16,6 @@ interface TextEditingToolbarProps {
    *  the parent can re-focus the contentEditable div. */
   onInteractionDone?: () => void;
 }
-
-const TEXT_COLOUR_OPTIONS: Array<{ color: string; title: string }> = [
-  { color: '#ffffff', title: 'White' },
-  { color: '#e0e0e0', title: 'Light gray' },
-  { color: '#9090a0', title: 'Gray' },
-  { color: '#1a1a2e', title: 'Dark' },
-  { color: '#e94560', title: 'Red' },
-  { color: '#f5a623', title: 'Orange' },
-  { color: '#f8e71c', title: 'Yellow' },
-  { color: '#7ed321', title: 'Green' },
-  { color: '#4a90e2', title: 'Blue' },
-  { color: '#9b59b6', title: 'Purple' },
-  { color: '#1abc9c', title: 'Teal' },
-];
 
 const FONT_FAMILY_OPTIONS: Array<{ value: string | undefined; label: string }> = [
   { value: undefined, label: 'Default' },
@@ -290,27 +277,12 @@ export function TextEditingToolbar({
 
         {/* Text colour */}
         <div className="node-toolbar__group" role="group" aria-label="Text colour">
-          <span className="node-toolbar__label" aria-hidden="true">
-            A
-          </span>
-          {TEXT_COLOUR_OPTIONS.map((opt) => (
-            <button
-              key={opt.color}
-              type="button"
-              className="node-toolbar__swatch"
-              style={{ background: opt.color }}
-              title={opt.title}
-              onClick={() => applyTextColor(opt.color)}
-            />
-          ))}
-          <button
-            type="button"
-            className="node-toolbar__swatch node-toolbar__swatch--reset"
-            title="Clear inline formatting (colour, size, font)"
-            onClick={() => applyTextColor(undefined)}
-          >
-            ⊘
-          </button>
+          <ColorPicker
+            label="A"
+            title="Text colour"
+            onChange={(color) => applyTextColor(color)}
+            allowReset
+          />
         </div>
       </div>
     </NodeToolbar>
