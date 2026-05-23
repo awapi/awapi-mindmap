@@ -31,6 +31,12 @@ export const IpcChannel = {
   // Updater
   UpdaterCheck: 'updater:check',
 
+  // Binary file write (for PNG export)
+  WriteBinaryFile: 'fs:writeBinaryFile',
+
+  // Canvas screenshot capture (for PNG/SVG export)
+  CaptureCanvas: 'canvas:capture',
+
   // Menu actions (main → renderer)
   MenuNewMap: 'menu:newMap',
   MenuOpen: 'menu:open',
@@ -38,6 +44,12 @@ export const IpcChannel = {
   MenuSaveAs: 'menu:saveAs',
   MenuOpenRecent: 'menu:openRecent',
   MenuSaveAndClose: 'menu:saveAndClose',
+
+  // Export menu events (main → renderer)
+  MenuExportPng: 'menu:exportPng',
+  MenuExportSvg: 'menu:exportSvg',
+  MenuExportText: 'menu:exportText',
+  MenuExportMarkdown: 'menu:exportMarkdown',
 } as const;
 
 export type IpcChannelName = (typeof IpcChannel)[keyof typeof IpcChannel];

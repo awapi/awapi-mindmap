@@ -240,6 +240,36 @@ async function buildMenu(): Promise<void> {
             (win as BrowserWindow | undefined)?.webContents.send(IpcChannel.MenuSaveAs),
         },
         { type: 'separator' },
+        {
+          label: 'Export',
+          enabled: hasMap,
+          submenu: [
+            {
+              label: 'Export as PNG…',
+              click: (_item, win) =>
+                (win as BrowserWindow | undefined)?.webContents.send(IpcChannel.MenuExportPng),
+            },
+            {
+              label: 'Export as SVG…',
+              click: (_item, win) =>
+                (win as BrowserWindow | undefined)?.webContents.send(IpcChannel.MenuExportSvg),
+            },
+            { type: 'separator' },
+            {
+              label: 'Export as Plain Text…',
+              click: (_item, win) =>
+                (win as BrowserWindow | undefined)?.webContents.send(IpcChannel.MenuExportText),
+            },
+            {
+              label: 'Export as Markdown…',
+              click: (_item, win) =>
+                (win as BrowserWindow | undefined)?.webContents.send(
+                  IpcChannel.MenuExportMarkdown,
+                ),
+            },
+          ],
+        },
+        { type: 'separator' },
         { role: 'quit' },
       ],
     },
@@ -363,6 +393,20 @@ function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannel.WriteFile, async (_event, filePath: string, content: string) => {
     await fs.writeFile(filePath, content, 'utf8');
   });
+
+  ipcMain.handle(IpcChannel.WriteBinaryFile, async (_event, filePath: string, base64: string) => {
+    await fs.writeFile(filePath, Buffer.from(base64, 'base64'));
+  });
+
+  ipcMain.handle(
+    IpcChannel.CaptureCanvas,
+    async (event, rect: { x: number; y: number; width: number; height: number }) => {
+      const win = BrowserWindow.fromWebContents(event.sender);
+      if (!win) return '';
+      const img = await win.webContents.capturePage(rect);
+      return img.toPNG().toString('base64');
+    },
+  );
 
   ipcMain.handle(IpcChannel.GetVersion, () => app.getVersion());
 

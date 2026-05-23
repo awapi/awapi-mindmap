@@ -47,17 +47,17 @@ files, dark/light theme, auto-updates from a private GitHub Releases feed.
 
 ## Phase 5 — Layout & navigation
 
-- [ ] Auto-layout: arrange nodes in a radial tree from the root node
-- [ ] Fit-to-view button and keyboard shortcut (`⌘⇧F` / `Ctrl+Shift+F`)
-- [ ] Minimap shows full graph; clicking pans the viewport
-- [ ] Canvas zoom via scroll wheel and pinch gesture
+- [x] Auto-layout: arrange nodes in a radial tree from the root node
+- [x] Fit-to-view button and keyboard shortcut (`⌘⇧F` / `Ctrl+Shift+F`)
+- [x] Minimap shows full graph; clicking pans the viewport
+- [x] Canvas zoom via scroll wheel and pinch gesture
 
 ## Phase 6 — Export
 
-- [ ] Export to PNG (current viewport, or full graph)
-- [ ] Export to SVG
-- [ ] Export to plain-text outline (indented list)
-- [ ] Export to Markdown (nested list)
+- [x] Export to PNG (current viewport, or full graph)
+- [x] Export to SVG
+- [x] Export to plain-text outline (indented list)
+- [x] Export to Markdown (nested list)
 
 ## Phase 7 — Collaboration & portability
 

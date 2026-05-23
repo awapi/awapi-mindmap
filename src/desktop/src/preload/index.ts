@@ -8,6 +8,8 @@ const api: AwapiApi = {
 
   readFile: (filePath) => ipcRenderer.invoke('fs:readFile', filePath),
   writeFile: (filePath, content) => ipcRenderer.invoke('fs:writeFile', filePath, content),
+  writeBinaryFile: (filePath, base64) => ipcRenderer.invoke('fs:writeBinaryFile', filePath, base64),
+  captureCanvas: (rect) => ipcRenderer.invoke('canvas:capture', rect),
 
   getVersion: () => ipcRenderer.invoke('app:getVersion'),
 
@@ -51,6 +53,22 @@ const api: AwapiApi = {
   onMenuSaveAndClose: (handler) => {
     ipcRenderer.on('menu:saveAndClose', handler);
     return () => ipcRenderer.off('menu:saveAndClose', handler);
+  },
+  onMenuExportPng: (handler) => {
+    ipcRenderer.on('menu:exportPng', handler);
+    return () => ipcRenderer.off('menu:exportPng', handler);
+  },
+  onMenuExportSvg: (handler) => {
+    ipcRenderer.on('menu:exportSvg', handler);
+    return () => ipcRenderer.off('menu:exportSvg', handler);
+  },
+  onMenuExportText: (handler) => {
+    ipcRenderer.on('menu:exportText', handler);
+    return () => ipcRenderer.off('menu:exportText', handler);
+  },
+  onMenuExportMarkdown: (handler) => {
+    ipcRenderer.on('menu:exportMarkdown', handler);
+    return () => ipcRenderer.off('menu:exportMarkdown', handler);
   },
 };
 

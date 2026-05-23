@@ -17,6 +17,8 @@ export interface AwapiApi {
   // File I/O
   readFile: (filePath: string) => Promise<string>;
   writeFile: (filePath: string, content: string) => Promise<void>;
+  writeBinaryFile: (filePath: string, base64: string) => Promise<void>;
+  captureCanvas: (rect: { x: number; y: number; width: number; height: number }) => Promise<string>;
 
   // App info
   getVersion: () => Promise<string>;
@@ -47,6 +49,12 @@ export interface AwapiApi {
   onMenuSaveAs: (handler: (event: IpcRendererEvent) => void) => () => void;
   onMenuOpenRecent: (handler: (event: IpcRendererEvent, path: string) => void) => () => void;
   onMenuSaveAndClose: (handler: (event: IpcRendererEvent) => void) => () => void;
+
+  // Export menu events
+  onMenuExportPng: (handler: (event: IpcRendererEvent) => void) => () => void;
+  onMenuExportSvg: (handler: (event: IpcRendererEvent) => void) => () => void;
+  onMenuExportText: (handler: (event: IpcRendererEvent) => void) => () => void;
+  onMenuExportMarkdown: (handler: (event: IpcRendererEvent) => void) => () => void;
 }
 
 declare global {

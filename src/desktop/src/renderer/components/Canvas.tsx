@@ -33,7 +33,9 @@ import { ShapePicker } from './ShapePicker.js';
 import { CanvasToolbar } from './CanvasToolbar.js';
 import { NodeFormattingToolbar } from './NodeFormattingToolbar.js';
 import { EdgeFormattingToolbar } from './EdgeFormattingToolbar.js';
-import type { ActiveTool } from './CanvasToolbar.js';
+import { computeRadialLayout } from '../utils/layout.js';
+import { toPlainText, toMarkdown } from '../utils/export.js';
+import type { ActiveTool, ExportType } from './CanvasToolbar.js';
 import type { ContextMenuAction } from './ContextMenu.js';
 import type { MindMapNode, MindMapEdge, NodeShape, EdgeMarker } from '../types/mindmap.js';
 import { nanoid } from '../utils/nanoid.js';
@@ -178,7 +180,7 @@ function CanvasFlow(): JSX.Element {
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
   const editingNodeId = useUIStore((s) => s.editingNodeId);
 
-  const { screenToFlowPosition, getNodes } = useReactFlow();
+  const { screenToFlowPosition, getNodes, fitView } = useReactFlow();
   // Read the current viewport zoom so we can counter-scale UI chrome
   // (connection handles, selection outlines, resize controls) and keep
   // them at a constant on-screen size regardless of zoom level.
@@ -190,6 +192,7 @@ function CanvasFlow(): JSX.Element {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [shapePicker, setShapePicker] = useState<ShapePickerState | null>(null);
   const [activeTool, setActiveTool] = useState<ActiveTool>('select');
+  const [showGrid, setShowGrid] = useState(true);
   const pendingSource = useRef<{ nodeId: string; handleId: string | null } | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   // In-memory clipboard for copy/cut/paste of nodes (+ edges internal to the selection).
@@ -332,6 +335,174 @@ function CanvasFlow(): JSX.Element {
     },
     [setNodePositions],
   );
+
+  // --- Fit to view ---
+
+  const handleFitView = useCallback(() => {
+    fitView({ duration: 300, padding: 0.1 });
+  }, [fitView]);
+
+  // --- Auto layout: radial tree from root ---
+
+  const handleAutoLayout = useCallback(() => {
+    const map = useMindMapStore.getState().mindMap;
+    if (!map) return;
+    const updates = computeRadialLayout(map.nodes, map.edges);
+    setNodePositions(updates);
+    const posMap = new Map(updates.map((u) => [u.id, u.position]));
+    setNodes((nds) =>
+      nds.map((n) => {
+        const p = posMap.get(n.id);
+        return p ? { ...n, position: p } : n;
+      }),
+    );
+    // Let React flush the new positions before fitting the view
+    setTimeout(() => fitView({ duration: 400, padding: 0.12 }), 50);
+  }, [setNodePositions, setNodes, fitView]);
+
+  // --- Export ---
+
+  const handleExport = useCallback(
+    async (type: ExportType) => {
+      const map = useMindMapStore.getState().mindMap;
+      if (!map) return;
+
+      // Text / Markdown — pure data, no DOM capture needed
+      if (type === 'text' || type === 'markdown') {
+        const content = type === 'text' ? toPlainText(map) : toMarkdown(map);
+        const ext = type === 'text' ? 'txt' : 'md';
+        const result = await window.awapi.showSaveDialog({
+          title: type === 'text' ? 'Export as Plain Text' : 'Export as Markdown',
+          defaultPath: `${map.title || 'untitled'}.${ext}`,
+          filters:
+            type === 'text'
+              ? [{ name: 'Text Files', extensions: ['txt'] }]
+              : [{ name: 'Markdown', extensions: ['md'] }],
+        });
+        if (result.canceled || !result.filePath) return;
+        await window.awapi.writeFile(result.filePath, content);
+        return;
+      }
+
+      // PNG / SVG — capture via webContents.capturePage (handles SVG edges correctly)
+      const rendererEl = wrapperRef.current?.querySelector(
+        '.react-flow__renderer',
+      ) as HTMLElement | null;
+      if (!rendererEl) return;
+
+      // Fit all nodes into view before capturing so the full graph is visible
+      fitView({ duration: 0, padding: 0.1 });
+      // Let the viewport transform settle before measuring / capturing
+      await new Promise<void>((resolve) => setTimeout(resolve, 80));
+
+      // Hide UI chrome that shouldn't appear in the export
+      const background = rendererEl.querySelector(
+        '.react-flow__background',
+      ) as HTMLElement | null;
+      const controls = wrapperRef.current?.querySelector(
+        '.react-flow__controls',
+      ) as HTMLElement | null;
+      const minimap = wrapperRef.current?.querySelector(
+        '.react-flow__minimap',
+      ) as HTMLElement | null;
+      const toolbar = wrapperRef.current?.querySelector(
+        '.float-toolbar',
+      ) as HTMLElement | null;
+      if (background) background.style.visibility = 'hidden';
+      if (controls) controls.style.visibility = 'hidden';
+      if (minimap) minimap.style.visibility = 'hidden';
+      if (toolbar) toolbar.style.visibility = 'hidden';
+
+      // Capture BEFORE showing the save dialog so the window stays focused
+      let pngBase64 = '';
+      try {
+        const rect = rendererEl.getBoundingClientRect();
+        pngBase64 = await window.awapi.captureCanvas({
+          x: Math.round(rect.left),
+          y: Math.round(rect.top),
+          width: Math.round(rect.width),
+          height: Math.round(rect.height),
+        });
+      } catch (err) {
+        console.error('Canvas capture failed:', err);
+        await window.awapi.showMessageBox({
+          type: 'error',
+          title: 'Export Failed',
+          message: 'Could not capture the canvas.',
+          detail: String(err),
+        });
+        return;
+      } finally {
+        if (background) background.style.visibility = '';
+        if (controls) controls.style.visibility = '';
+        if (minimap) minimap.style.visibility = '';
+        if (toolbar) toolbar.style.visibility = '';
+      }
+
+      const ext = type === 'png' ? 'png' : 'svg';
+      const result = await window.awapi.showSaveDialog({
+        title: type === 'png' ? 'Export as PNG' : 'Export as SVG',
+        defaultPath: `${map.title || 'untitled'}.${ext}`,
+        filters:
+          type === 'png'
+            ? [{ name: 'PNG Image', extensions: ['png'] }]
+            : [{ name: 'SVG Image', extensions: ['svg'] }],
+      });
+      if (result.canceled || !result.filePath) return;
+
+      if (type === 'png') {
+        await window.awapi.writeBinaryFile(result.filePath, pngBase64);
+      } else {
+        // SVG: embed the captured PNG inside a properly sized SVG document
+        const rect = rendererEl.getBoundingClientRect();
+        const w = Math.round(rect.width);
+        const h = Math.round(rect.height);
+        const svgContent = [
+          `<?xml version="1.0" encoding="UTF-8"?>`,
+          `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"`,
+          `     width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`,
+          `  <image href="data:image/png;base64,${pngBase64}"`,
+          `         width="${w}" height="${h}" />`,
+          `</svg>`,
+        ].join('\n');
+        await window.awapi.writeFile(result.filePath, svgContent);
+      }
+    },
+    [fitView],
+  );
+
+  // Subscribe to menu export events
+  useEffect(() => {
+    const offPng = window.awapi.onMenuExportPng(() => void handleExport('png'));
+    const offSvg = window.awapi.onMenuExportSvg(() => void handleExport('svg'));
+    const offText = window.awapi.onMenuExportText(() => void handleExport('text'));
+    const offMd = window.awapi.onMenuExportMarkdown(() => void handleExport('markdown'));
+    return () => {
+      offPng();
+      offSvg();
+      offText();
+      offMd();
+    };
+  }, [handleExport]);
+
+  // Global keyboard shortcuts: Fit to View (Ctrl+Shift+F) and Auto Layout (Ctrl+Shift+L)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      const isMeta = e.metaKey || e.ctrlKey;
+      if (!isMeta || !e.shiftKey) return;
+      if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        handleFitView();
+      } else if (e.key === 'l' || e.key === 'L') {
+        e.preventDefault();
+        handleAutoLayout();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleFitView, handleAutoLayout]);
 
   // --- Add node helper used by toolbar and context menu ---
 
@@ -904,11 +1075,13 @@ function CanvasFlow(): JSX.Element {
             deleteKeyCode={null}
             panOnDrag={[2]}
             selectionOnDrag
+            zoomOnScroll
+            zoomOnPinch
             fitView
           >
-            <Background />
+            {showGrid && <Background />}
             <Controls />
-            <MiniMap />
+            <MiniMap pannable zoomable />
             {showFormattingToolbar && (
               <NodeFormattingToolbar
                 nodeIds={formattingSelection.nodeIds}
@@ -933,6 +1106,11 @@ function CanvasFlow(): JSX.Element {
         <CanvasToolbar
           activeTool={activeTool}
           onToolChange={setActiveTool}
+          onAutoLayout={handleAutoLayout}
+          onFitView={handleFitView}
+          onExport={handleExport}
+          showGrid={showGrid}
+          onToggleGrid={() => setShowGrid((g) => !g)}
           onAddNode={() => {
             const center = screenToFlowPosition({
               x: window.innerWidth / 2,
