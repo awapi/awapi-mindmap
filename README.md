@@ -49,4 +49,4 @@ See [docs/architecture.md](docs/architecture.md).
 
 ## License
 
-See [LICENSE](LICENSE).
+Licensed under the [Apache License 2.0](LICENSE).

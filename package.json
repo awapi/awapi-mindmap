@@ -4,7 +4,7 @@
   "private": true,
   "description": "AwapiMindmap — cross-platform mind map designer by Awapi.",
   "author": "Awapi",
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "Apache-2.0",
   "type": "module",
   "engines": {
     "node": ">=22.0.0",
