@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "mindMap": {
+    "id": "sample-project",
+    "title": "Website Launch Plan",
+    "updatedAt": "2026-10-23T00:00:00.000Z",
+    "nodes": [
+      { "id": "root", "label": "Website Launch", "position": { "x": 0, "y": 0 }, "shape": "circle", "color": "#0ea5e9", "textColor": "#ffffff", "width": 140, "height": 140 },
+      { "id": "design", "label": "Design", "position": { "x": 300, "y": -200 }, "color": "#dbeafe" },
+      { "id": "d1", "label": "Wireframes", "position": { "x": 520, "y": -240 }, "shape": "text" },
+      { "id": "d2", "label": "Brand colours", "position": { "x": 520, "y": -180 }, "shape": "text" },
+      { "id": "dev", "label": "Development", "position": { "x": 300, "y": 0 }, "color": "#dcfce7" },
+      { "id": "v1", "label": "Frontend", "position": { "x": 520, "y": -40 }, "shape": "text" },
+      { "id": "v2", "label": "Backend API", "position": { "x": 520, "y": 20 }, "shape": "text" },
+      { "id": "content", "label": "Content", "position": { "x": -300, "y": -150 }, "color": "#fef3c7" },
+      { "id": "c1", "label": "Copywriting", "position": { "x": -520, "y": -190 }, "shape": "text", "textAlign": "right" },
+      { "id": "c2", "label": "Photos", "position": { "x": -520, "y": -130 }, "shape": "text", "textAlign": "right" },
+      { "id": "market", "label": "Marketing", "position": { "x": -300, "y": 150 }, "color": "#fce7f3" },
+      { "id": "m1", "label": "Social media", "position": { "x": -520, "y": 120 }, "shape": "text", "textAlign": "right" },
+      { "id": "m2", "label": "Newsletter", "position": { "x": -520, "y": 180 }, "shape": "text", "textAlign": "right" },
+      { "id": "go", "label": "Go / No-go decision", "position": { "x": 300, "y": 200 }, "shape": "diamond", "color": "#fecaca", "width": 180, "height": 110 },
+      { "id": "risk", "label": "Risk: tight deadline - cut scope if needed", "position": { "x": 0, "y": 300 }, "shape": "sticky", "color": "#fde68a", "width": 200, "height": 100 }
+    ],
+    "edges": [
+      { "id": "e1", "source": "root", "target": "design", "markerEnd": "arrowclosed" },
+      { "id": "e2", "source": "design", "target": "d1", "markerEnd": "arrowclosed" },
+      { "id": "e3", "source": "design", "target": "d2", "markerEnd": "arrowclosed" },
+      { "id": "e4", "source": "root", "target": "dev", "markerEnd": "arrowclosed" },
+      { "id": "e5", "source": "dev", "target": "v1", "markerEnd": "arrowclosed" },
+      { "id": "e6", "source": "dev", "target": "v2", "markerEnd": "arrowclosed" },
+      { "id": "e7", "source": "root", "target": "content", "markerEnd": "arrowclosed" },
+      { "id": "e8", "source": "content", "target": "c1", "markerEnd": "arrowclosed" },
+      { "id": "e9", "source": "content", "target": "c2", "markerEnd": "arrowclosed" },
+      { "id": "e10", "source": "root", "target": "market", "markerEnd": "arrowclosed" },
+      { "id": "e11", "source": "market", "target": "m1", "markerEnd": "arrowclosed" },
+      { "id": "e12", "source": "market", "target": "m2", "markerEnd": "arrowclosed" },
+      { "id": "e13", "source": "dev", "target": "go", "edgeStyle": "step", "strokeColor": "#ef4444", "strokeWidth": 2, "markerEnd": "arrowclosed" }
+    ]
+  }
+}

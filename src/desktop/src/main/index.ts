@@ -53,17 +53,34 @@ async function addRecent(path: string): Promise<string[]> {
 
 // --- Renderer-tracked state mirrored in main -------------------------------
 
-let isDirty = false;
-let currentFilePath: string | undefined;
-let hasMap = false;
-/** When true, we are mid-shutdown after a save-and-close confirmation. */
-let allowNextClose = false;
+/** Per-window state, keyed by webContents id. Each window is an independent
+ *  mind map document. */
+interface WindowState {
+  isDirty: boolean;
+  filePath: string | undefined;
+  hasMap: boolean;
+  /** When true, we are mid-shutdown after a save-and-close confirmation. */
+  allowClose: boolean;
+  /** File to load on startup (consumed once by the renderer). */
+  startupPath: string | undefined;
+  /** Whether this window should offer autosave crash recovery. */
+  recover: boolean;
+}
 
-/** Path requested via OS file-association (open-file / argv), buffered
- *  until the renderer is ready to receive it. */
-let pendingOpenPath: string | undefined;
-/** Set once the renderer has loaded and can accept open-path messages. */
-let rendererReady = false;
+const windowStates = new Map<number, WindowState>();
+/** Only the first window of the app session offers crash recovery. */
+let recoveryOffered = false;
+/** Path from an OS open-file event received before the app was ready. */
+let earlyOpenPath: string | undefined;
+
+function stateFor(contents: Electron.WebContents): WindowState | undefined {
+  return windowStates.get(contents.id);
+}
+
+function focusedState(): WindowState | undefined {
+  const win = BrowserWindow.getFocusedWindow();
+  return win ? stateFor(win.webContents) : undefined;
+}
 
 /** Extract an `.awmm` path from argv (Windows/Linux file-association). */
 function findAwmmInArgv(argv: readonly string[]): string | undefined {
@@ -72,37 +89,41 @@ function findAwmmInArgv(argv: readonly string[]): string | undefined {
   return argv.slice(1).find((a) => !a.startsWith('-') && a.toLowerCase().endsWith('.awmm'));
 }
 
-function dispatchOpenPath(path: string): void {
-  const win = BrowserWindow.getAllWindows()[0];
-  if (!win) return;
+function focusWindow(win: BrowserWindow): void {
   if (win.isMinimized()) win.restore();
   win.focus();
-  win.webContents.send(IpcChannel.MenuOpenRecent, path);
 }
 
-function queueOrDispatchOpenPath(path: string): void {
-  if (rendererReady) {
-    dispatchOpenPath(path);
+/** Route an OS-requested path: the focused window decides whether to load it
+ *  in place (when it is an untouched empty map) or hand off to a new window. */
+function openPathFromOs(path: string): void {
+  if (!app.isReady()) {
+    earlyOpenPath = path;
+    return;
+  }
+  const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
+  if (win && !win.webContents.isLoading()) {
+    focusWindow(win);
+    win.webContents.send(IpcChannel.MenuOpenRecent, path);
   } else {
-    pendingOpenPath = path;
+    createWindow(path);
   }
 }
 
 // --- OS-level file-association wiring --------------------------------------
 
-// Ensure a single instance on Windows/Linux so a second double-click
-// reuses the existing window instead of launching a new app.
+// A single process hosts every window (lighter than multiple app instances).
+// Launching the app again opens a new window in the running process.
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 if (!gotSingleInstanceLock) {
   app.quit();
 } else {
   app.on('second-instance', (_event, argv) => {
     const path = findAwmmInArgv(argv);
-    if (path) queueOrDispatchOpenPath(path);
-    const win = BrowserWindow.getAllWindows()[0];
-    if (win) {
-      if (win.isMinimized()) win.restore();
-      win.focus();
+    if (path) {
+      openPathFromOs(path);
+    } else {
+      createWindow();
     }
   });
 }
@@ -111,10 +132,10 @@ if (!gotSingleInstanceLock) {
 // before `whenReady`, so we buffer the path.
 app.on('open-file', (event, path) => {
   event.preventDefault();
-  queueOrDispatchOpenPath(path);
+  openPathFromOs(path);
 });
 
-function createWindow(): BrowserWindow {
+function createWindow(startupPath?: string): BrowserWindow {
   // Window icon: used on Windows/Linux title bars and taskbars.
   // macOS uses the icon embedded in the .app bundle (set by electron-builder),
   // so passing `icon` here is a harmless no-op on darwin.
@@ -141,23 +162,26 @@ function createWindow(): BrowserWindow {
     win.loadFile(join(__dirname, '../renderer/index.html'));
   }
 
-  // Once the renderer has finished loading, flush any pending open-path
-  // request that came from the OS (file-association double-click).
-  win.webContents.once('did-finish-load', () => {
-    rendererReady = true;
-    if (pendingOpenPath) {
-      const p = pendingOpenPath;
-      pendingOpenPath = undefined;
-      dispatchOpenPath(p);
-    }
-  });
+  const wcId = win.webContents.id;
+  const state: WindowState = {
+    isDirty: false,
+    filePath: undefined,
+    hasMap: false,
+    allowClose: false,
+    startupPath,
+    recover: !startupPath && !recoveryOffered,
+  };
+  if (state.recover) recoveryOffered = true;
+  windowStates.set(wcId, state);
+
+  win.on('focus', () => void buildMenu());
   win.on('closed', () => {
-    rendererReady = false;
+    windowStates.delete(wcId);
   });
 
   // Intercept window close to prompt on unsaved changes.
   win.on('close', (event) => {
-    if (allowNextClose || !isDirty) return;
+    if (state.allowClose || !state.isDirty) return;
     event.preventDefault();
     const choice = dialog.showMessageBoxSync(win, {
       type: 'warning',
@@ -170,7 +194,7 @@ function createWindow(): BrowserWindow {
     });
     if (choice === 1) {
       // Don't Save — close without saving.
-      allowNextClose = true;
+      state.allowClose = true;
       win.destroy();
     } else if (choice === 0) {
       // Save — delegate to renderer; it will call CloseWindow when done.
@@ -184,6 +208,7 @@ function createWindow(): BrowserWindow {
 
 async function buildMenu(): Promise<void> {
   const recents = await loadRecents();
+  const hasMap = focusedState()?.hasMap ?? false;
 
   const recentSubmenu: Electron.MenuItemConstructorOptions[] =
     recents.length === 0
@@ -415,22 +440,37 @@ function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannel.GetVersion, () => app.getVersion());
 
   // Dirty / file path tracking
-  ipcMain.handle(IpcChannel.SetDirty, (_event, dirty: boolean) => {
-    isDirty = dirty;
+  ipcMain.handle(IpcChannel.SetDirty, (event, dirty: boolean) => {
+    const s = stateFor(event.sender);
+    if (s) s.isDirty = dirty;
   });
-  ipcMain.handle(IpcChannel.SetFilePath, (_event, filePath: string | undefined) => {
-    currentFilePath = filePath;
+  ipcMain.handle(IpcChannel.SetFilePath, (event, filePath: string | undefined) => {
+    const s = stateFor(event.sender);
+    if (s) s.filePath = filePath;
   });
-  ipcMain.handle(IpcChannel.SetHasMap, async (_event, value: boolean) => {
-    if (hasMap === value) return;
-    hasMap = value;
+  ipcMain.handle(IpcChannel.SetHasMap, async (event, value: boolean) => {
+    const s = stateFor(event.sender);
+    if (!s || s.hasMap === value) return;
+    s.hasMap = value;
     await buildMenu();
   });
   ipcMain.handle(IpcChannel.CloseWindow, (event) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (!win) return;
-    allowNextClose = true;
+    const s = stateFor(event.sender);
+    if (s) s.allowClose = true;
     win.destroy();
+  });
+  ipcMain.handle(IpcChannel.OpenInNewWindow, (_event, filePath?: string) => {
+    createWindow(filePath);
+  });
+  ipcMain.handle(IpcChannel.GetStartupInfo, (event) => {
+    const s = stateFor(event.sender);
+    if (!s) return { recover: false };
+    const info = { path: s.startupPath, recover: s.recover };
+    s.startupPath = undefined;
+    s.recover = false;
+    return info;
   });
 
   // Recents
@@ -493,15 +533,12 @@ app.whenReady().then(async () => {
 
   registerIpcHandlers();
   await buildMenu();
-  createWindow();
 
-  // If the app was launched by double-clicking a .awmm file in Explorer
-  // (Windows/Linux), the path is in process.argv. Buffer it; the window's
-  // `did-finish-load` will flush it once the renderer is ready.
-  if (process.platform !== 'darwin') {
-    const fromArgv = findAwmmInArgv(process.argv);
-    if (fromArgv) pendingOpenPath = fromArgv;
-  }
+  // If launched by double-clicking a .awmm file (Windows/Linux the path is in
+  // process.argv; macOS delivers it via `open-file`), load it in the first window.
+  const fromArgv = process.platform !== 'darwin' ? findAwmmInArgv(process.argv) : undefined;
+  createWindow(fromArgv ?? earlyOpenPath);
+  earlyOpenPath = undefined;
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -533,7 +570,3 @@ app.on('web-contents-created', (_event, contents) => {
 
   contents.setWindowOpenHandler(() => ({ action: 'deny' }));
 });
-
-// Unused variable suppressed — currentFilePath is reserved for future
-// use (e.g. window title in main, packaging metadata).
-void currentFilePath;

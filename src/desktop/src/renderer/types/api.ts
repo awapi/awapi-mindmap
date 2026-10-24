@@ -28,6 +28,10 @@ export interface AwapiApi {
   setFilePath: (filePath: string | undefined) => Promise<void>;
   setHasMap: (hasMap: boolean) => Promise<void>;
   closeWindow: () => Promise<void>;
+  /** Opens a new window, optionally loading `filePath` into it. */
+  openInNewWindow: (filePath?: string) => Promise<void>;
+  /** One-shot startup info for this window (consumed on first call). */
+  getStartupInfo: () => Promise<{ path?: string; recover: boolean }>;
 
   // Recent files
   recentsGet: () => Promise<string[]>;

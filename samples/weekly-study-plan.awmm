@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "mindMap": {
+    "id": "sample-study",
+    "title": "Learning TypeScript",
+    "updatedAt": "2026-10-23T00:00:00.000Z",
+    "nodes": [
+      { "id": "root", "label": "Learning TypeScript", "position": { "x": 0, "y": 0 }, "shape": "rectangle", "color": "#7c3aed", "textColor": "#ffffff", "fontWeight": "bold", "width": 200, "height": 60 },
+      { "id": "basics", "label": "Week 1: Basics", "position": { "x": 0, "y": 150 }, "color": "#dbeafe" },
+      { "id": "b1", "label": "Types & interfaces", "position": { "x": 0, "y": 250 }, "shape": "text" },
+      { "id": "b2", "label": "Functions", "position": { "x": 0, "y": 300 }, "shape": "text" },
+      { "id": "adv", "label": "Week 2: Advanced", "position": { "x": 250, "y": 150 }, "color": "#dcfce7" },
+      { "id": "a1", "label": "Generics", "position": { "x": 250, "y": 250 }, "shape": "text" },
+      { "id": "a2", "label": "Utility types", "position": { "x": 250, "y": 300 }, "shape": "text" },
+      { "id": "proj", "label": "Week 3: Project", "position": { "x": 500, "y": 150 }, "color": "#fef3c7" },
+      { "id": "p1", "label": "Build a CLI tool", "position": { "x": 500, "y": 250 }, "shape": "text" },
+      { "id": "p2", "label": "Write tests", "position": { "x": 500, "y": 300 }, "shape": "text" },
+      { "id": "res", "label": "Resources", "position": { "x": -250, "y": 150 }, "color": "#fce7f3" },
+      { "id": "r1", "label": "Official handbook", "position": { "x": -250, "y": 250 }, "shape": "text" },
+      { "id": "note", "label": "Practice a little every day!", "position": { "x": 300, "y": -100 }, "shape": "sticky", "color": "#fde68a", "width": 180, "height": 90 }
+    ],
+    "edges": [
+      { "id": "e1", "source": "root", "target": "basics", "markerEnd": "arrowclosed" },
+      { "id": "e2", "source": "root", "target": "adv", "markerEnd": "arrowclosed" },
+      { "id": "e3", "source": "root", "target": "proj", "markerEnd": "arrowclosed" },
+      { "id": "e4", "source": "root", "target": "res", "markerEnd": "arrowclosed" },
+      { "id": "e5", "source": "basics", "target": "b1", "markerEnd": "arrowclosed" },
+      { "id": "e6", "source": "basics", "target": "b2", "markerEnd": "arrowclosed" },
+      { "id": "e7", "source": "adv", "target": "a1", "markerEnd": "arrowclosed" },
+      { "id": "e8", "source": "adv", "target": "a2", "markerEnd": "arrowclosed" },
+      { "id": "e9", "source": "proj", "target": "p1", "markerEnd": "arrowclosed" },
+      { "id": "e10", "source": "proj", "target": "p2", "markerEnd": "arrowclosed" },
+      { "id": "e11", "source": "res", "target": "r1", "markerEnd": "arrowclosed" }
+    ]
+  }
+}

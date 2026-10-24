@@ -1,0 +1,344 @@
+{
+  "version": 1,
+  "mindMap": {
+    "id": "sample-about",
+    "title": "About AwapiMindmap",
+    "updatedAt": "2026-10-24T03:45:18.465Z",
+    "nodes": [
+      {
+        "id": "root",
+        "label": "AwapiMindmap",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "shape": "ellipse",
+        "color": "#4f46e5",
+        "textColor": "#ffffff",
+        "fontSize": 20,
+        "fontWeight": "bold",
+        "width": 200,
+        "height": 80
+      },
+      {
+        "id": "canvas",
+        "label": "Canvas",
+        "position": {
+          "x": 272,
+          "y": -242
+        },
+        "color": "#dbeafe",
+        "width": 82,
+        "height": 43,
+        "fontSize": 12,
+        "shape": "rectangle",
+        "richLabel": "<font color=\"#1f4e79\">Canvas</font>"
+      },
+      {
+        "id": "canvas1",
+        "label": "Pan, zoom, drag nodes",
+        "position": {
+          "x": 464.99999999999994,
+          "y": -320
+        },
+        "shape": "text",
+        "fontSize": 12
+      },
+      {
+        "id": "canvas2",
+        "label": "Connect nodes with edges",
+        "position": {
+          "x": 493,
+          "y": -270
+        },
+        "shape": "text",
+        "fontSize": 12
+      },
+      {
+        "id": "canvas3",
+        "label": "Double-click to edit text",
+        "position": {
+          "x": 465,
+          "y": -212
+        },
+        "shape": "text",
+        "fontSize": 12
+      },
+      {
+        "id": "style",
+        "label": "Styling",
+        "position": {
+          "x": 293,
+          "y": -52
+        },
+        "color": "#dcfce7",
+        "width": 82,
+        "height": 43,
+        "fontSize": 12,
+        "shape": "rectangle",
+        "richLabel": "<font color=\"#1f4e79\">Styling</font>"
+      },
+      {
+        "id": "style1",
+        "label": "Shapes: rectangle, circle, diamond, sticky...",
+        "position": {
+          "x": 480,
+          "y": -123
+        },
+        "shape": "text"
+      },
+      {
+        "id": "style2",
+        "label": "Colours, fonts, rich text",
+        "position": {
+          "x": 490,
+          "y": -18.999999999999993
+        },
+        "shape": "text",
+        "fontSize": 12
+      },
+      {
+        "id": "style3",
+        "label": "Edge styles and arrow markers",
+        "position": {
+          "x": 515,
+          "y": -79.00000000000003
+        },
+        "shape": "text",
+        "fontSize": 12
+      },
+      {
+        "id": "edit",
+        "label": "Editing",
+        "position": {
+          "x": 290,
+          "y": 131.00000000000003
+        },
+        "color": "#fef3c7",
+        "width": 82,
+        "height": 43,
+        "fontSize": 12,
+        "shape": "rectangle",
+        "richLabel": "<font color=\"#1f4e79\">Editing</font>"
+      },
+      {
+        "id": "edit1",
+        "label": "Undo / Redo (50 steps)",
+        "position": {
+          "x": 451.99999999999994,
+          "y": 72
+        },
+        "shape": "text",
+        "fontSize": 12
+      },
+      {
+        "id": "edit2",
+        "label": "Collapse / expand branches",
+        "position": {
+          "x": 477,
+          "y": 114.99999999999999
+        },
+        "shape": "text",
+        "fontSize": 12
+      },
+      {
+        "id": "edit3",
+        "label": "Delete via key or context menu",
+        "position": {
+          "x": 447.99999999999994,
+          "y": 181
+        },
+        "shape": "text",
+        "fontSize": 12
+      },
+      {
+        "id": "files",
+        "label": "Files",
+        "position": {
+          "x": -159.99999999999994,
+          "y": -100
+        },
+        "color": "#fce7f3",
+        "width": 82,
+        "height": 43,
+        "fontSize": 12,
+        "richLabel": "<font color=\"#1f4e79\">Files</font>"
+      },
+      {
+        "id": "files1",
+        "label": "Saved as .awmm (JSON)",
+        "position": {
+          "x": -346.99999999999994,
+          "y": -148
+        },
+        "shape": "text",
+        "fontSize": 12
+      },
+      {
+        "id": "files2",
+        "label": "Open / Save / New",
+        "position": {
+          "x": -346.99999999999994,
+          "y": -88.00000000000001
+        },
+        "shape": "text",
+        "fontSize": 12
+      },
+      {
+        "id": "platform",
+        "label": "Cross-platform",
+        "position": {
+          "x": -159.99999999999994,
+          "y": 54.999999999999986
+        },
+        "color": "#ede9fe",
+        "width": 82,
+        "height": 43,
+        "fontSize": 12,
+        "richLabel": "<font color=\"#1f4e79\">Cross-platform</font>"
+      },
+      {
+        "id": "platform1",
+        "label": "Electron + React + TypeScript",
+        "position": {
+          "x": -399,
+          "y": 69.99999999999999
+        },
+        "shape": "text",
+        "fontSize": 12
+      },
+      {
+        "id": "platform2",
+        "label": "Windows, macOS, Linux",
+        "position": {
+          "x": -381,
+          "y": 24.99999999999997
+        },
+        "shape": "text",
+        "fontSize": 12
+      },
+      {
+        "id": "note",
+        "label": "Tip: open the other samples to see more layouts!",
+        "position": {
+          "x": -1.9999999999999858,
+          "y": 113.99999999999997
+        },
+        "shape": "sticky",
+        "color": "#fde68a",
+        "width": 220,
+        "height": 100
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "root",
+        "target": "canvas",
+        "markerEnd": "arrowclosed"
+      },
+      {
+        "id": "e2",
+        "source": "canvas",
+        "target": "canvas1",
+        "markerEnd": "arrowclosed"
+      },
+      {
+        "id": "e3",
+        "source": "canvas",
+        "target": "canvas2",
+        "markerEnd": "arrowclosed"
+      },
+      {
+        "id": "e4",
+        "source": "canvas",
+        "target": "canvas3",
+        "markerEnd": "arrowclosed"
+      },
+      {
+        "id": "e5",
+        "source": "root",
+        "target": "style",
+        "markerEnd": "arrowclosed"
+      },
+      {
+        "id": "e6",
+        "source": "style",
+        "target": "style1",
+        "markerEnd": "arrowclosed"
+      },
+      {
+        "id": "e7",
+        "source": "style",
+        "target": "style2",
+        "markerEnd": "arrowclosed"
+      },
+      {
+        "id": "e8",
+        "source": "style",
+        "target": "style3",
+        "markerEnd": "arrowclosed"
+      },
+      {
+        "id": "e9",
+        "source": "root",
+        "target": "edit",
+        "markerEnd": "arrowclosed"
+      },
+      {
+        "id": "e10",
+        "source": "edit",
+        "target": "edit1",
+        "markerEnd": "arrowclosed"
+      },
+      {
+        "id": "e11",
+        "source": "edit",
+        "target": "edit2",
+        "markerEnd": "arrowclosed"
+      },
+      {
+        "id": "e12",
+        "source": "edit",
+        "target": "edit3",
+        "markerEnd": "arrowclosed"
+      },
+      {
+        "id": "e13",
+        "source": "root",
+        "target": "files",
+        "markerEnd": "arrowclosed"
+      },
+      {
+        "id": "e14",
+        "source": "files",
+        "target": "files1",
+        "markerEnd": "arrowclosed"
+      },
+      {
+        "id": "e15",
+        "source": "files",
+        "target": "files2",
+        "markerEnd": "arrowclosed"
+      },
+      {
+        "id": "e16",
+        "source": "root",
+        "target": "platform",
+        "markerEnd": "arrowclosed"
+      },
+      {
+        "id": "e17",
+        "source": "platform",
+        "target": "platform1",
+        "markerEnd": "arrowclosed"
+      },
+      {
+        "id": "e18",
+        "source": "platform",
+        "target": "platform2",
+        "markerEnd": "arrowclosed"
+      }
+    ]
+  }
+}

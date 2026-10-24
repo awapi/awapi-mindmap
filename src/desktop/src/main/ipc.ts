@@ -17,6 +17,8 @@ export const IpcChannel = {
   SetFilePath: 'app:setFilePath',
   SetHasMap: 'app:setHasMap',
   CloseWindow: 'app:closeWindow',
+  OpenInNewWindow: 'app:openInNewWindow',
+  GetStartupInfo: 'app:getStartupInfo',
 
   // Recent files
   RecentsGet: 'recents:get',

@@ -17,6 +17,8 @@ const api: AwapiApi = {
   setFilePath: (filePath) => ipcRenderer.invoke('app:setFilePath', filePath),
   setHasMap: (hasMap) => ipcRenderer.invoke('app:setHasMap', hasMap),
   closeWindow: () => ipcRenderer.invoke('app:closeWindow'),
+  openInNewWindow: (filePath) => ipcRenderer.invoke('app:openInNewWindow', filePath),
+  getStartupInfo: () => ipcRenderer.invoke('app:getStartupInfo'),
 
   recentsGet: () => ipcRenderer.invoke('recents:get'),
   recentsAdd: (filePath) => ipcRenderer.invoke('recents:add', filePath),

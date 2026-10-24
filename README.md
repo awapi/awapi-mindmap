@@ -2,6 +2,8 @@
 
 A cross-platform desktop mind map designer built with Electron, React, and React Flow.
 
+![AwapiMindmap screenshot](docs/images/awapiMindmap.png)
+
 ## Features
 
 - **Visual mind map canvas** — drag, connect, and organise nodes freely

@@ -9,29 +9,6 @@ import { nanoid } from './utils/nanoid.js';
 /** How often to write the autosave file when there are unsaved changes. */
 const AUTOSAVE_INTERVAL_MS = 60_000;
 
-/**
- * Prompt the user about unsaved changes before a destructive action.
- * Returns true when the caller should proceed (Save succeeded or Don't Save),
- * false when the user cancelled.
- */
-async function confirmDiscardOrSave(
-  mindMap: MindMap,
-  doSave: () => Promise<boolean>,
-): Promise<boolean> {
-  const result = await window.awapi.showMessageBox({
-    type: 'warning',
-    buttons: ['Save', "Don't Save", 'Cancel'],
-    defaultId: 0,
-    cancelId: 2,
-    title: 'Unsaved changes',
-    message: `Save changes to "${mindMap.title}"?`,
-    detail: "Your changes will be lost if you don't save them.",
-  });
-  if (result.response === 0) return doSave();
-  if (result.response === 1) return true;
-  return false;
-}
-
 export function App(): JSX.Element {
   const theme = useThemeStore((s) => s.theme);
   const mindMap = useMindMapStore((s) => s.mindMap);
@@ -165,11 +142,19 @@ export function App(): JSX.Element {
     [setMindMap],
   );
 
+  /** An untouched, unsaved map can be replaced in place; otherwise a new window is used. */
+  const openPathSmart = useCallback(
+    async (path: string) => {
+      if (!filePathRef.current && !isDirtyRef.current) {
+        await openPath(path);
+      } else {
+        await window.awapi.openInNewWindow(path);
+      }
+    },
+    [openPath],
+  );
+
   const handleOpen = useCallback(async () => {
-    if (isDirtyRef.current && mindMapRef.current) {
-      const ok = await confirmDiscardOrSave(mindMapRef.current, handleSave);
-      if (!ok) return;
-    }
     const result = await window.awapi.showOpenDialog({
       title: 'Open Mind Map',
       filters: [{ name: 'AwapiMindmap', extensions: ['awmm'] }],
@@ -178,17 +163,13 @@ export function App(): JSX.Element {
     if (result.canceled || result.filePaths.length === 0) return;
     const path = result.filePaths[0];
     if (!path) return;
-    await openPath(path);
-  }, [handleSave, openPath]);
+    await openPathSmart(path);
+  }, [openPathSmart]);
 
   const handleNew = useCallback(async () => {
-    if (isDirtyRef.current && mindMapRef.current) {
-      const ok = await confirmDiscardOrSave(mindMapRef.current, handleSave);
-      if (!ok) return;
-    }
-    newMap();
-    await window.awapi.autosaveClear();
-  }, [handleSave, newMap]);
+    if (!filePathRef.current && !isDirtyRef.current) return;
+    await window.awapi.openInNewWindow();
+  }, []);
 
   // Save then close (requested by main when user picked "Save" in close prompt).
   const handleSaveAndClose = useCallback(async () => {
@@ -204,13 +185,7 @@ export function App(): JSX.Element {
     const offSave = window.awapi.onMenuSave(() => void handleSave());
     const offSaveAs = window.awapi.onMenuSaveAs(() => void handleSaveAs());
     const offRecent = window.awapi.onMenuOpenRecent((_e, path) => {
-      void (async () => {
-        if (isDirtyRef.current && mindMapRef.current) {
-          const ok = await confirmDiscardOrSave(mindMapRef.current, handleSave);
-          if (!ok) return;
-        }
-        await openPath(path);
-      })();
+      void openPathSmart(path);
     });
     const offSaveAndClose = window.awapi.onMenuSaveAndClose(() => void handleSaveAndClose());
     return () => {
@@ -221,7 +196,7 @@ export function App(): JSX.Element {
       offRecent();
       offSaveAndClose();
     };
-  }, [handleNew, handleOpen, handleSave, handleSaveAs, handleSaveAndClose, openPath]);
+  }, [handleNew, handleOpen, handleSave, handleSaveAs, handleSaveAndClose, openPathSmart]);
 
   // ---- Auto-save timer ----------------------------------------------------
 
@@ -244,7 +219,14 @@ export function App(): JSX.Element {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const payload = await window.awapi.autosaveRead();
+      const startup = await window.awapi.getStartupInfo();
+      if (cancelled) return;
+      if (startup.path) {
+        await openPath(startup.path);
+        if (!mindMapRef.current) newMap();
+        return;
+      }
+      const payload = startup.recover ? await window.awapi.autosaveRead() : null;
       if (cancelled) return;
       if (!payload) {
         // No prior session to recover — start with a fresh empty map so the
@@ -281,7 +263,7 @@ export function App(): JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, [setMindMap, newMap]);
+  }, [setMindMap, newMap, openPath]);
 
   // ---- Title bar ----------------------------------------------------------
 
